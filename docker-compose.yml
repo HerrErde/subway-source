@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  subway-source:
+    image: ghcr.io/herrerde/subway-source:latest
+    environment:
+      GITHUB_API_KEY: example
+    ports:
+      - 80:80
