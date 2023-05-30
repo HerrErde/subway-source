@@ -47,13 +47,13 @@ with sync_playwright() as playwright:
     # Create a new page
     page = context.new_page()
 
-    # Extract data from the Hoverboard page
-    page.goto("https://subwaysurf.fandom.com/wiki/Hoverboard", timeout=60000)
-    extract_data(page, "table.article-table", "boards_links.json")
-
     # Extract data from the Characters page
-    page.goto("https://subwaysurf.fandom.com/wiki/Characters", timeout=60000)
+    page.goto("https://subwaysurf.fandom.com/wiki/Characters", timeout=1200000)
     extract_data(page, "table.article-table", "characters_links.json")
+
+    # Extract data from the Hoverboard page
+    page.goto("https://subwaysurf.fandom.com/wiki/Hoverboard", timeout=1200000)
+    extract_data(page, "table.article-table", "boards_links.json")
 
     # Close the browser context
     context.close()

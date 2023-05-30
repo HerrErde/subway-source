@@ -13,7 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -59,6 +58,9 @@ jobs:
             ~/opt/
           key: ${{ runner.os }}-playwright
 
+      - name: Update Links
+        run: python misc/fetch_links.py
+
       #- name: Get latest Apk
       #  run: python script/down-apk.py ${{steps.var.outputs.orgName}} ${{steps.var.outputs.appName}} ${{steps.var.outputs.appName2}} ${{steps.var.outputs.version}}
 
@@ -70,30 +72,24 @@ jobs:
       - name: Unpack apk
         run: python script/unpack.py ${{steps.var.outputs.version}} ${{steps.var.outputs.appName}}
 
-      - name: Update Links
-        run: python links/fetch_links.py
-
-      - name: Update Game Data
+      - name: Extract Game Data
         run: |
           python script/fetch_characters.py
           python script/fetch_boards.py
 
-      #- name: Upload Artifact
-      #  uses: actions/upload-artifact@v3
-      #  with:
-      #    path: |
-      #          boards_output.json
-      #          characters_output.json
+      - name: Update Game Data
+        run: |
+          python misc/sort_characters.py
+          python misc/sort_boards.py
 
       - name: Upload Data
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{steps.var.outputs.version}}
           files: |
-            boards_output.json
-            characters_output.json
-
+            boards_data.json
             boards_links.json
+            characters_data.json
             characters_links.json
 
         env:

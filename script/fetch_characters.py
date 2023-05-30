@@ -19,7 +19,6 @@ for name in names:
 
     # Extract the desired fields from the data
     item_id = data["id"]
-    priority = data["priority"]
 
     # Extract outfits if available, otherwise set as "none"
     outfits = []
@@ -35,13 +34,12 @@ for name in names:
 
     # Print the extracted data
     # print("Item ID:", item_id)
-    # print("Priority:", priority)
     # print("Outfits:")
     # print(json.dumps(outfits, indent=2))
     # print()
 
     # Store the extracted data
-    extracted_data.append({"id": item_id, "priority": priority, "outfits": outfits})
+    extracted_data.append({"id": item_id.replace(" ", ""), "outfits": outfits})
 
 # Save the extracted data to a JSON file
 with open("characters_output.json", "w") as file:
