@@ -39,8 +39,8 @@ def get_numbers_from_sources():
 
 def trigger_github_workflow():
     # Set the necessary environment variables for triggering the GitHub workflow
-    repo_owner = "HerrErde"
-    repo_name = "subway-source"
+    repo_owner = os.environ.get("REPO_OWNER", "HerrErde")
+    repo_name = os.environ.get("REPO_NAME", "subway-source")
     github_token = os.environ.get("GITHUB_API_KEY")
 
     # Trigger the GitHub workflow using the GitHub REST API v3
