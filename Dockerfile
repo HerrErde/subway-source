@@ -8,7 +8,8 @@ WORKDIR /app
 COPY update/app.py /app/
 
 # Install the required Python packages
-RUN pip install requests
+RUN pip install requests pytest-playwright
+RUN playwright install
 
 # Expose the port on which the Flask app will run
 EXPOSE 80
