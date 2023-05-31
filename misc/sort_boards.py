@@ -5,7 +5,17 @@ def extract(json_input_links):
         data = json.load(f)
 
     names = [item.get('name', '') for item in data]
-    names = [name.replace("Hoverboard", "default").replace(" ", "") for name in names]
+    names = [name.replace(" ", "") for name in names]
+    names = [name.replace("Hoverboard", "default") for name in names]
+
+    names = [name.replace("8thBirthday", "birthday") for name in names]
+    
+    year = 2021
+    for i in range(2, len(names) + 1):
+        exponent = i + 7
+        birthday = f"{exponent}thBirthday"
+        names = [name.replace(birthday, f"birthday{year}") for name in names]
+        year += 1
 
     return names
 
