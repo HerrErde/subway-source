@@ -67,7 +67,7 @@ jobs:
       - name: Get latest Apk
         run: |
           chmod +x script/bash/down-apk.sh
-          script/bash/down-apk.sh
+          script/bash/down-apk.sh ${{steps.var.outputs.version}}
 
       - name: Unpack apk
         run: python script/unpack.py ${{steps.var.outputs.version}} ${{steps.var.outputs.appName}}

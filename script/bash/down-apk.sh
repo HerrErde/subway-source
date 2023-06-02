@@ -6,8 +6,7 @@ orgName="sybo-games"
 appName="subwaysurfers"
 appName2="subway-surfers"
 
-version=$(curl -s "https://gplayapi.srik.me/api/apps/$packageId" | jq -r '.version')
-appVer=$(echo $version | tr '.' '-')
+appVer="$1"
 
 page1=$(curl -vsL -A "$userAgent" "https://www.apkmirror.com/apk/$orgName/$appName/$appName-$appVer-release" 2>&1)
 
