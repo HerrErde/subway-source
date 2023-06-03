@@ -1,5 +1,10 @@
 import json
 
+
+json_input = 'characters_output.json'
+json_input_links = 'characters_links.json'
+json_output = 'characters_sort.json'
+
 def extract(json_input_links):
     with open(json_input_links, 'r') as f:
         data = json.load(f)
@@ -19,10 +24,6 @@ def sort_json(json_input, names, json_output):
 
     with open(json_output, 'w') as f:
         json.dump(ordered_data, f, indent=2)
-
-json_input = 'characters_output.json'
-json_input_links = 'characters_links.json'
-json_output = 'characters_data.json'
 
 names = extract(json_input_links)
 sort_json(json_input, names, json_output)

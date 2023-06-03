@@ -1,7 +1,11 @@
 #!/bin/bash
 
+if [ -z "$1" ]; then
+  echo "Error: Invalid version format. Please use the format 'X-Y-Z' (e.g., '3-12-2')."
+  exit 1
+fi
+
 userAgent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
-packageId="com.kiloo.subwaysurf"
 orgName="sybo-games"
 appName="subwaysurfers"
 appName2="subway-surfers"

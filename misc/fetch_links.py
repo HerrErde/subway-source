@@ -1,3 +1,4 @@
+import sys
 import json
 from playwright.sync_api import sync_playwright
 
@@ -16,7 +17,6 @@ def extract_data(page, table_selector, json_file):
         td_elements = tr_element.query_selector_all("td")
         if len(td_elements) >= 3:
             number = td_elements[0].text_content().strip()
-
             name = td_elements[2].text_content().strip()
 
             link_element = td_elements[1].query_selector("a")
@@ -47,13 +47,15 @@ with sync_playwright() as playwright:
     # Create a new page
     page = context.new_page()
 
-    # Extract data from the Characters page
-    page.goto("https://subwaysurf.fandom.com/wiki/Characters", timeout=1200000)
-    extract_data(page, "table.article-table", "characters_links.json")
+    # Fetch characters data
+    if len(sys.argv) == 1 or sys.argv[1] == "1":
+        page.goto("https://subwaysurf.fandom.com/wiki/Characters", timeout=1200000)
+        extract_data(page, "table.article-table", "characters_links.json")
 
-    # Extract data from the Hoverboard page
-    page.goto("https://subwaysurf.fandom.com/wiki/Hoverboard", timeout=1200000)
-    extract_data(page, "table.article-table", "boards_links.json")
+    # Fetch boards data
+    if len(sys.argv) == 1 or sys.argv[1] == "2":
+        page.goto("https://subwaysurf.fandom.com/wiki/Hoverboard", timeout=1200000)
+        extract_data(page, "table.article-table", "boards_links.json")
 
     # Close the browser context
     context.close()

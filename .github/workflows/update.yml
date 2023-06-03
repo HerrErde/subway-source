@@ -23,7 +23,7 @@ jobs:
         run: |
           echo "orgName=sybo-games" >> $GITHUB_OUTPUT
           echo "appName=subwaysurfers" >> $GITHUB_OUTPUT
-          echo "appName2=subway-surders" >> $GITHUB_OUTPUT
+          echo "appName2=subway-surfers" >> $GITHUB_OUTPUT
           packageId="com.kiloo.subwaysurf" >> $GITHUB_OUTPUT
 
           echo version=$(curl -s "https://gplayapi.srik.me/api/apps/$packageId" | jq -r '.version' | tr '.' '-') >> $GITHUB_OUTPUT
@@ -88,9 +88,9 @@ jobs:
           tag_name: ${{steps.var.outputs.version}}
           files: |
             boards_data.json
-            boards_links.json
+            boards_sort.json
             characters_data.json
-            characters_links.json
+            characters_sort.json
 
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}

@@ -1,5 +1,10 @@
 import json
 
+
+json_input = 'boards_output.json'
+json_input_links = 'boards_links.json'
+json_output = 'boards_sort.json'
+
 def extract(json_input_links):
     with open(json_input_links, 'r') as f:
         data = json.load(f)
@@ -7,7 +12,6 @@ def extract(json_input_links):
     names = [item.get('name', '') for item in data]
     names = [name.replace(" ", "") for name in names]
     names = [name.replace("Hoverboard", "default") for name in names]
-
     names = [name.replace("8thBirthday", "birthday") for name in names]
     
     year = 2021
@@ -29,10 +33,6 @@ def sort_json(json_input, names, json_output):
 
     with open(json_output, 'w') as f:
         json.dump(ordered_data, f, indent=2)
-
-json_input = 'boards_output.json'
-json_input_links = 'boards_links.json'
-json_output = 'boards_data.json'
 
 names = extract(json_input_links)
 sort_json(json_input, names, json_output)
