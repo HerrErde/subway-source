@@ -34,4 +34,3 @@ for name in names:
 # Save the extracted data to a JSON file
 with open("boards_output.json", "w") as file:
     json.dump(extracted_data, file, indent=2)
-    

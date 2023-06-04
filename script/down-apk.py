@@ -3,7 +3,9 @@ import requests
 from bs4 import BeautifulSoup
 
 if len(sys.argv) < 2:
-    print("Error: Invalid version format. Please use the format 'X-Y-Z' (e.g., '3-12-2').")
+    print(
+        "Error: Invalid version format. Please use the format 'X-Y-Z' (e.g., '3-12-2')."
+    )
     sys.exit(1)
 
 userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
@@ -29,17 +31,25 @@ if 'class="apkm-badge">' not in page:
 # Temp fix
 url1 = f"/apk/{orgName}/{appName}/{appName}-{appVer}-release/{appName2}-{appVer}-android-apk-download/"
 
-response = requests.get(f"https://www.apkmirror.com{url1}", headers={"User-Agent": userAgent})
+response = requests.get(
+    f"https://www.apkmirror.com{url1}", headers={"User-Agent": userAgent}
+)
 page2 = response.text
-url2 = BeautifulSoup(page2, "html.parser").select_one('a:-soup-contains("Download APK")')['href']
+url2 = BeautifulSoup(page2, "html.parser").select_one(
+    'a:-soup-contains("Download APK")'
+)["href"]
 
 if not url2:
     print("error", file=sys.stderr)
     sys.exit(1)
 
-response = requests.get(f"https://www.apkmirror.com{url2}", headers={"User-Agent": userAgent})
+response = requests.get(
+    f"https://www.apkmirror.com{url2}", headers={"User-Agent": userAgent}
+)
 page3 = response.text
-url3 = BeautifulSoup(page3, "html.parser").select_one('a[data-google-vignette="false"][rel="nofollow"]')['href']
+url3 = BeautifulSoup(page3, "html.parser").select_one(
+    'a[data-google-vignette="false"][rel="nofollow"]'
+)["href"]
 
 if not url3:
     print("error", file=sys.stderr)
