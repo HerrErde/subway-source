@@ -38,7 +38,7 @@ jobs:
 
       - name: Install
         run: |
-          pip install pytest-playwright BeautifulSoup
+          pip install pytest-playwright beautifulsoup4
           playwright install
 
       - name: Save Cache
