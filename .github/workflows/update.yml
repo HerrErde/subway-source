@@ -44,7 +44,7 @@ jobs:
       - name: Install
         run: |
           go install github.com/ericchiang/pup@latest
-          pip install pytest-playwright
+          pip install pytest-playwright BeautifulSoup
           playwright install
 
       - name: Save Cache
@@ -61,13 +61,8 @@ jobs:
       - name: Update Links
         run: python misc/fetch_links.py
 
-      #- name: Get latest Apk
-      #  run: python script/down-apk.py ${{steps.var.outputs.orgName}} ${{steps.var.outputs.appName}} ${{steps.var.outputs.appName2}} ${{steps.var.outputs.version}}
-
       - name: Get latest Apk
-        run: |
-          chmod +x script/bash/down-apk.sh
-          script/bash/down-apk.sh ${{steps.var.outputs.version}}
+        run: python script/down-apk.py ${{steps.var.outputs.version}}
 
       - name: Unpack apk
         run: python script/unpack.py ${{steps.var.outputs.version}} ${{steps.var.outputs.appName}}
