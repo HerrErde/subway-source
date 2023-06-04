@@ -1,71 +1,53 @@
+import sys
 import requests
-from playwright.sync_api import sync_playwright
+from bs4 import BeautifulSoup
+
+if len(sys.argv) < 2:
+    print("Error: Invalid version format. Please use the format 'X-Y-Z' (e.g., '3-12-2').")
+    sys.exit(1)
 
 userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
-packageId = "com.kiloo.subwaysurf"
 orgName = "sybo-games"
 appName = "subwaysurfers"
 appName2 = "subway-surfers"
 
-response = requests.get(f"https://gplayapi.srik.me/api/apps/{packageId}")
-data = response.json()
-version = data["version"]
-appVer = version.replace(".", "-")
+appVer = sys.argv[1]
 
+url = f"https://www.apkmirror.com/apk/{orgName}/{appName}/{appName}-{appVer}-release"
 
-with sync_playwright() as playwright:
-    browser = playwright.chromium.launch()
-    context = browser.new_context(user_agent=userAgent)
-    page = context.new_page()
+response = requests.get(url, headers={"User-Agent": userAgent})
+page = response.text
 
-    page1_response = page.goto(
-        f"https://www.apkmirror.com/apk/{orgName}/{appName}/{appName}-{appVer}-release"
-    )
-    page1 = page1_response.text()
+if 'class="error404"' in page:
+    print("noversion", file=sys.stderr)
+    sys.exit(1)
 
-    if 'class="error404"' in page1:
-        print("noversion", file=sys.stderr)
-        browser.close()
-        exit(1)
+if 'class="apkm-badge">' not in page:
+    print("noapk", file=sys.stderr)
+    sys.exit(1)
 
-    page2 = page1.query_selector("span:contains('APK')").parent().parent().outer_html()
+# Temp fix
+url1 = f"/apk/{orgName}/{appName}/{appName}-{appVer}-release/{appName2}-{appVer}-android-apk-download/"
 
-    url1 = page2.query_selector_all(f"div:contains('{arch}')").map(
-        lambda element: element.parent_element.query_selector(
-            "a.accent_color"
-        ).get_attribute("href")
-    )
+response = requests.get(f"https://www.apkmirror.com{url1}", headers={"User-Agent": userAgent})
+page2 = response.text
+url2 = BeautifulSoup(page2, "html.parser").select_one('a:-soup-contains("Download APK")')['href']
 
-    if len(url1) == 0:
-        print("noapk", file=sys.stderr)
-        browser.close()
-        exit(1)
+if not url2:
+    print("error", file=sys.stderr)
+    sys.exit(1)
 
-    url2_response = page.goto(f"https://www.apkmirror.com{url1[-1]}")
-    url2 = url2_response.query_selector("a:contains('Download APK')").get_attribute(
-        "href"
-    )
-    print(url2)
+response = requests.get(f"https://www.apkmirror.com{url2}", headers={"User-Agent": userAgent})
+page3 = response.text
+url3 = BeautifulSoup(page3, "html.parser").select_one('a[data-google-vignette="false"][rel="nofollow"]')['href']
 
-    if not url2:
-        print("error", file=sys.stderr)
-        browser.close()
-        exit(1)
+if not url3:
+    print("error", file=sys.stderr)
+    sys.exit(1)
 
-    url3_response = page.goto(f"https://www.apkmirror.com{url2}")
-    url3 = url3_response.query_selector(
-        "a[data-google-vignette='false'][rel='nofollow']"
-    ).get_attribute("href")
+apk_url = f"https://www.apkmirror.com{url3}"
+print(apk_url, file=sys.stderr)
 
-    if not url3:
-        print("error", file=sys.stderr)
-        browser.close()
-        exit(1)
-
-    print(f"https://www.apkmirror.com{url3}", file=sys.stderr)
-
-    page.goto(f"https://www.apkmirror.com{url3}")
-    page.wait_for_load_state("networkidle")
-    page.screenshot(path=f"{app_name}-{app_ver}.apk")
-
-    browser.close()
+response = requests.get(apk_url, headers={"User-Agent": userAgent})
+with open(f"{appName}-{appVer}.apk", "wb") as f:
+    f.write(response.content)
