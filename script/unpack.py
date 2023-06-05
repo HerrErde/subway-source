@@ -24,7 +24,8 @@ def main(version, appName):
     os.rename(apk_file, zip_file)
 
     # Unpack the .zip file to the temporary directory
-    subprocess.run(["unzip", zip_file, f"{extract_folder}/*"])
+    subprocess.run(["unzip", zip_file, "base.apk"])
+    subprocess.run(["unzip", "base.apk", f"{extract_folder}/*"])
 
     print("Unpacking completed!")
     shutil.move(extract_folder, "gamedata/")
