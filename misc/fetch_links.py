@@ -1,26 +1,27 @@
 import sys
 import json
-from playwright.sync_api import sync_playwright
+import asyncio
+from playwright.async_api import async_playwright
 
 
-def extract_data(page, table_selector, json_file):
+async def extract_data(page, table_selector, json_file):
     # Wait for the table to load
-    page.wait_for_selector(table_selector)
+    await page.wait_for_selector(table_selector)
 
     # Extract the "td" elements from each "tr" element
-    tr_elements = page.query_selector_all(f"{table_selector} tr")
+    tr_elements = await page.query_selector_all(f"{table_selector} tr")
 
     data = []
 
     # Extract data from each "tr" element
     for tr_element in tr_elements:
-        td_elements = tr_element.query_selector_all("td")
+        td_elements = await tr_element.query_selector_all("td")
         if len(td_elements) >= 3:
-            number = td_elements[0].text_content().strip()
-            name = td_elements[2].text_content().strip()
+            number = (await td_elements[0].text_content()).strip()
+            name = (await td_elements[2].text_content()).strip()
 
-            link_element = td_elements[1].query_selector("a")
-            img_url = link_element.get_attribute("href") if link_element else ""
+            link_element = await td_elements[1].query_selector("a")
+            img_url = (await link_element.get_attribute("href")) if link_element else ""
 
             # Remove everything after the .png extension in the image URL
             img_url = (
@@ -36,26 +37,50 @@ def extract_data(page, table_selector, json_file):
         json.dump(data, file, indent=2)
 
 
-# Create a Playwright instance
-with sync_playwright() as playwright:
-    # Launch a new browser instance
-    browser = playwright.chromium.launch()
+async def fetch_data(url, table_selector, json_file):
+    async with async_playwright() as playwright:
+        # Launch a new browser instance
+        browser = await playwright.chromium.launch()
 
-    # Create a new browser context
-    context = browser.new_context()
+        # Create a new browser context
+        context = await browser.new_context()
 
-    # Create a new page
-    page = context.new_page()
+        # Create a new page
+        page = await context.new_page()
+
+        # Fetch data
+        await page.goto(url, timeout=1200000)
+        await extract_data(page, table_selector, json_file)
+
+        # Close the browser context
+        await context.close()
+
+
+async def main():
+    tasks = []
 
     # Fetch characters data
     if len(sys.argv) == 1 or sys.argv[1] == "1":
-        page.goto("https://subwaysurf.fandom.com/wiki/Characters", timeout=1200000)
-        extract_data(page, "table.article-table", "characters_links.json")
+        tasks.append(
+            fetch_data(
+                "https://subwaysurf.fandom.com/wiki/Characters",
+                "table.article-table",
+                "characters_links.json",
+            )
+        )
 
     # Fetch boards data
     if len(sys.argv) == 1 or sys.argv[1] == "2":
-        page.goto("https://subwaysurf.fandom.com/wiki/Hoverboard", timeout=1200000)
-        extract_data(page, "table.article-table", "boards_links.json")
+        tasks.append(
+            fetch_data(
+                "https://subwaysurf.fandom.com/wiki/Hoverboard",
+                "table.article-table",
+                "boards_links.json",
+            )
+        )
 
-    # Close the browser context
-    context.close()
+    await asyncio.gather(*tasks)
+
+
+# Run the main function
+asyncio.run(main())

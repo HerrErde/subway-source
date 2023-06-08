@@ -1,4 +1,5 @@
 import json
+import re
 
 
 json_input = "boards_output.json"
@@ -11,8 +12,9 @@ def extract(json_input_links):
         data = json.load(f)
 
     names = [item.get("name", "") for item in data]
-    names = [name.replace(" ", "") for name in names]
-    names = [name.replace("Hoverboard", "default") for name in names]
+    names = [name.replace(" ", "").replace("-", "") for name in names]
+    names = [name.replace("Wrapped", "xmas2022") for name in names]
+    names = [re.sub(r"\bHoverboard\b", "default", name) for name in names]
     names = [name.replace("8thBirthday", "birthday") for name in names]
 
     year = 2021
@@ -33,8 +35,10 @@ def sort_json(json_input, names, json_output):
 
     ordered_data = []
     count = 1
+    skipped_names = []
 
     for name in names:
+        found = False
         for item in data:
             if "id" in item and item["id"].replace(" ", "").lower() == name:
                 item_with_number = {
@@ -44,10 +48,20 @@ def sort_json(json_input, names, json_output):
                 }
                 count += 1
                 ordered_data.append(item_with_number)
+                found = True
+                break
+
+        if not found:
+            skipped_names.append(name)
 
     with open(json_output, "w") as f:
         json.dump(ordered_data, f, indent=2)
 
+    return skipped_names
+
 
 names = extract(json_input_links)
-sort_json(json_input, names, json_output)
+skipped_names = sort_json(json_input, names, json_output)
+print("Skipped Names:")
+for name in skipped_names:
+    print(name)
