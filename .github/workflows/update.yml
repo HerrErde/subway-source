@@ -56,7 +56,7 @@ jobs:
         run: python script/down-apk.py ${{steps.var.outputs.version}}
 
       - name: Unpack apk
-        run: python script/unpack.py ${{steps.var.outputs.version}} ${{steps.var.outputs.appName}}
+        run: python misc/unpack.py ${{steps.var.outputs.version}} ${{steps.var.outputs.appName}}
 
       - name: Extract Game Data
         run: |
