@@ -1,9 +1,18 @@
 import os
-import requests
 import subprocess
 import shutil
 import sys
 import re
+import zipfile
+
+
+def extract_from_zip(zip_file, extract_folder):
+    with zipfile.ZipFile(zip_file, "r") as zf:
+        if "base.apk" in zf.namelist():
+            zf.extract("base.apk")
+            subprocess.run(["unzip", "base.apk", f"{extract_folder}/*"])
+        else:
+            subprocess.run(["unzip", zip_file, f"{extract_folder}/*"])
 
 
 def main(version, appName):
@@ -23,17 +32,14 @@ def main(version, appName):
     zip_file = f"{os.path.splitext(apk_file)[0]}.zip"
     os.rename(apk_file, zip_file)
 
-    # Unpack the .zip file to the temporary directory
-    subprocess.run(["unzip", zip_file, "base.apk"])
-    subprocess.run(["unzip", "base.apk", f"{extract_folder}/*"])
+    # Extract from the zip file
+    extract_from_zip(zip_file, extract_folder)
 
     print("Unpacking completed!")
     shutil.move(extract_folder, "gamedata/")
     shutil.rmtree("assets/")
 
     print("Move and deletion completed!")
-
-    os.rename(zip_file, apk_file)
 
 
 if __name__ == "__main__":
