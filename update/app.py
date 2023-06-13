@@ -110,7 +110,14 @@ def main():
     while True:
         gplayapi_version, json_version = get_version()
 
-        if gplayapi_version != json_version:
+        gplayapi_parts = gplayapi_version.split(".")
+        json_parts = json_version.split(".")
+
+        if (
+            len(gplayapi_parts) >= 2
+            and len(json_parts) >= 2
+            and gplayapi_parts[1] != json_parts[1]
+        ):
             print(f"{TerminalColors.YELLOW}Version is outdated!{TerminalColors.END}")
             if check_404(gplayapi_version):
                 print("No Version available")
