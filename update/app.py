@@ -15,7 +15,7 @@ class TerminalColors:
     END = "\033[0m"
 
 
-delay = 300
+delay = 300  # 5 mins
 start_time = time.time()
 workflow_runs = 0
 
@@ -36,13 +36,11 @@ def check_404(gplayapi_version):
 
         if 'class="error404"' in page_content:
             browser.close()
-            return False
-
-    return True
+            return True
 
 
 def get_version():
-    # get version gplayapi
+    # get version from gplayapi
     gplayapi_response = requests.get(
         "https://gplayapi.srik.me/api/apps/com.kiloo.subwaysurf"
     )
@@ -56,23 +54,56 @@ def get_version():
     json_data = json_response.json()
     json_version = json_data["appversion"]
 
-    return gplayapi_version, json_version
+    # get latest repo tag
+    tag_response = requests.get(
+        f"https://api.github.com/repos/HerrErde/{repo_name}/releases/latest"
+    )
+    if tag_response.status_code == 200:
+        release_data = tag_response.json()
+        tag_version = release_data["tag_name"]
+    else:
+        tag_version = None
+
+    return gplayapi_version, json_version, tag_version
 
 
+# trigger subway-source workflow
 def trigger_github_workflow():
-    # Trigger the GitHub workflow
+    global workflow_runs
     endpoint = f"https://api.github.com/repos/{repo_owner}/{repo_name}/dispatches"
     headers = {
         "Authorization": f"token {github_token}",
         "Accept": "application/vnd.github.everest-preview+json",
     }
-    payload = {"event_type": "update_event", "client_payload": {"ref": "main"}}
+    payload = {"event_type": "update_event", "client_payload": {"ref": "master"}}
     response = requests.post(endpoint, headers=headers, json=payload)
 
-    if response.status_code == 204:
+    if response.ok:
         print(
-            f"{TerminalColors.GREEN}GitHub workflow triggered successfully!{TerminalColors.END}"
+            f"{TerminalColors.BLUE}Triggered GitHub workflow successfully!{TerminalColors.END}"
         )
+        workflow_runs += 1
+    else:
+        print(
+            f"{TerminalColors.RED}Failed to trigger the GitHub workflow.{TerminalColors.END}"
+        )
+
+
+# trigger subwaybooster workflow
+def trigger_subwaybooster_workflow():
+    endpoint = f"https://api.github.com/repos/{repo_owner}/{repo2_name}/dispatches"
+    headers = {
+        "Authorization": f"token {github_token}",
+        "Accept": "application/vnd.github.everest-preview+json",
+    }
+    payload = {"event_type": "update_event", "client_payload": {"ref": "master"}}
+    response = requests.post(endpoint, headers=headers, json=payload)
+
+    if response.ok:
+        print(
+            f"{TerminalColors.BLUE}Triggered GitHub workflow successfully!{TerminalColors.END}"
+        )
+        workflow_runs += 1
     else:
         print(
             f"{TerminalColors.RED}Failed to trigger the GitHub workflow.{TerminalColors.END}"
@@ -83,55 +114,59 @@ def display_stuff():
     global start_time, workflow_runs
     current_time = time.time()
     elapsed_time = current_time - start_time
-    gplayapi_version, json_version = get_version()
+    gplayapi_version, json_version, tag_version = get_version()
+
+    json_part = json_version.split(".")
+    sup_version = ".".join(json_part[:2]) + ".*"
 
     # Convert elapsed_time to days, hours, minutes, and seconds
-    elapsed_days = int(elapsed_time // (24 * 3600))
-    elapsed_time %= 24 * 3600
-    elapsed_hours = int(elapsed_time // 3600)
-    elapsed_time %= 3600
-    elapsed_minutes = int(elapsed_time // 60)
-    elapsed_seconds = int(elapsed_time % 60)
+    elapsed_days, elapsed_time = divmod(elapsed_time, 24 * 3600)
+    elapsed_hours, elapsed_time = divmod(elapsed_time, 3600)
+    elapsed_minutes, elapsed_seconds = divmod(elapsed_time, 60)
 
-    print(
-        {
-            f"Start Time": time.ctime(start_time),
-            f"Elapsed Time": f"{elapsed_days}d:{elapsed_hours}h:{elapsed_minutes}m:{elapsed_seconds}s",
-            f"Workflow Runs": workflow_runs,
-            f"Supported Version": json_version,
-            f"Latest Version": gplayapi_version,
-        }
-    )
+    output = {
+        "Start Time": time.ctime(start_time),
+        "Elapsed Time": f"{int(elapsed_days)}d:{int(elapsed_hours)}h:{int(elapsed_minutes)}m:{int(elapsed_seconds)}s",
+        "Workflow Runs": workflow_runs,
+        "Supported Version": sup_version,
+        "Latest Version": gplayapi_version,
+    }
+
+    print(output)
 
 
 def main():
     global delay, workflow_runs
 
-    while True:
-        gplayapi_version, json_version = get_version()
+    try:
+        while True:
+            gplayapi_version, json_version, tag_version = get_version()
 
-        gplayapi_parts = gplayapi_version.split(".")
-        json_parts = json_version.split(".")
+            gplayapi_part = gplayapi_version.split(".")
+            json_part = json_version.split(".")
+            tag_part = tag_version.split("-")
 
-        if (
-            len(gplayapi_parts) >= 2
-            and len(json_parts) >= 2
-            and gplayapi_parts[1] != json_parts[1]
-        ):
-            print(f"{TerminalColors.YELLOW}Version is outdated!{TerminalColors.END}")
-            if check_404(gplayapi_version):
-                print("No Version available")
+            if gplayapi_part[1] == tag_part[1]:
+                print(
+                    f"{TerminalColors.BLUE}Version is up to date!{TerminalColors.END}"
+                )
                 display_stuff()
-                continue
+                if gplayapi_part[1] != json_part[1]:
+                    trigger_subwaybooster_workflow()
             else:
-                trigger_github_workflow()
-                workflow_runs += 1
+                print(
+                    f"{TerminalColors.YELLOW}Version is outdated!{TerminalColors.END}"
+                )
+                if check_404(gplayapi_version):
+                    print("No Version available")
+                else:
+                    trigger_github_workflow()
                 display_stuff()
-        else:
-            print(f"{TerminalColors.BLUE}Version is up to date!{TerminalColors.END}")
-            display_stuff()
 
-        time.sleep(delay)
+            time.sleep(delay)
+    except KeyboardInterrupt:
+        print("\nProgram interrupted. Exiting...")
+        sys.exit(0)
 
 
 if __name__ == "__main__":
