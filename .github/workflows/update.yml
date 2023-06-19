@@ -5,8 +5,6 @@ on:
   repository_dispatch:
     types:
       - update_event
-  #schedule:
-  #  - cron: "0 18 * * 4"
 
 jobs:
   update:
@@ -14,7 +12,6 @@ jobs:
     permissions:
       contents: read
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - uses: actions/checkout@v3
 
@@ -34,7 +31,7 @@ jobs:
         with:
           path: |
             ~/.cache/
-          key: ${{ runner.os }}-playwright
+          key: ${{ runner.os }}
 
       - name: Install
         run: |
@@ -47,7 +44,7 @@ jobs:
         with:
           path: |
             ~/.cache/
-          key: ${{ runner.os }}-playwright
+          key: ${{ runner.os }}
 
       - name: Update Links
         run: python misc/fetch_links.py
@@ -68,9 +65,15 @@ jobs:
           python misc/sort_characters.py
           python misc/sort_boards.py
 
+      - name: Check changes
+        id: update
+        run: |
+          python misc/check.py
+
       - name: Upload Data
         uses: softprops/action-gh-release@v1
         with:
+          body_path: 'update.txt'
           tag_name: ${{steps.var.outputs.version}}
           files: |
             boards_links.json
