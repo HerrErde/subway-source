@@ -11,9 +11,7 @@ def extract(json_input_links):
 
     names = [item.get("name", "") for item in link_data]
     names = [
-        name.replace("Hoverboard", "default")
-        .replace("Super Runner Fernando", "fernando")
-        .replace(" ", "")
+        name.replace("Super Runner Fernando", "fernando").replace(" ", "")
         for name in names
     ]
 
