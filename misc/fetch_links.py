@@ -15,8 +15,22 @@ async def extract_data(page, table_selector, json_file):
 
     # Extract data from each "tr" element
     for tr_element in tr_elements:
+        img_element = await tr_element.query_selector("img[alt='TbaName']")
+        if img_element:
+            continue
+
         td_elements = await tr_element.query_selector_all("td")
-        if len(td_elements) >= 3:
+        if len(td_elements) >= 4:
+            available_element = td_elements[4]
+            status_text = (await available_element.text_content()).strip()
+
+            if status_text in ["Yes", "No"]:
+                available = True
+            elif status_text == "Unavailable":
+                available = False
+            else:
+                continue
+
             number = (await td_elements[0].text_content()).strip()
             name = (await td_elements[2].text_content()).strip()
 
@@ -28,7 +42,12 @@ async def extract_data(page, table_selector, json_file):
                 img_url.split(".png")[0] + ".png" if ".png" in img_url else img_url
             )
 
-            board_data = {"number": number, "name": name, "img_url": img_url}
+            board_data = {
+                "number": number,
+                "name": name,
+                "available": available,
+                "img_url": img_url,
+            }
 
             data.append(board_data)
 

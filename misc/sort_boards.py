@@ -28,6 +28,7 @@ def extract(json_input_links):
             .lower(),
         )
         for item in link_data
+        if item.get("available", True)
     ]
 
     year = 2021
