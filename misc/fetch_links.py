@@ -15,10 +15,6 @@ async def extract_data(page, table_selector, json_file):
 
     # Extract data from each "tr" element
     for tr_element in tr_elements:
-        img_element = await tr_element.query_selector("img[alt='TbaName']")
-        if img_element:
-            continue
-
         td_elements = await tr_element.query_selector_all("td")
         if len(td_elements) >= 4:
             available_element = td_elements[4]

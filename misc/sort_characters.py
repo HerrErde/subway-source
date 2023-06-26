@@ -1,4 +1,5 @@
 import json
+import sys
 
 json_input = "characters_output.json"
 json_input_links = "characters_links.json"

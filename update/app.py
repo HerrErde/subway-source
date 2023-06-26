@@ -25,7 +25,7 @@ github_token = os.environ.get("GITHUB_API_KEY")
 
 
 def check_404(gplayapi_version):
-    with async_playwright() as playwright:
+    with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         context = browser.new_context()
         page = context.new_page()

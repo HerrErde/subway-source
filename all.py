@@ -1,15 +1,26 @@
 import subprocess
 import time
+import requests
+
+
+def version():
+    # get version from gplayapi
+    response = requests.get("https://gplayapi.srik.me/api/apps/com.kiloo.subwaysurf")
+    data = response.json()
+    version = data["version"].replace(".", "-")
+
+    return version
+
 
 scripts = [
-    ["misc/fetch_links.py"],
-    ["script/down-apk.py", "3-13-2"],
-    ["misc/unpack.py", "3-13-2", "subwaysurfers"],
+    #["misc/fetch_links.py"],
+    ["script/down-apk.py", version()],
+    ["misc/unpack.py", version(), "subwaysurfers"],
     ["script/fetch_characters.py"],
     ["script/fetch_boards.py"],
     ["misc/sort_characters.py"],
     ["misc/sort_boards.py"],
-    # ["misc/check.py"],
+    #["misc/check.py"],
     # Add more script commands and arguments as needed
 ]
 
