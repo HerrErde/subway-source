@@ -47,7 +47,9 @@ jobs:
           key: ${{ runner.os }}
 
       - name: Update Links
-        run: python misc/fetch_links.py
+        run: |
+          python misc/fetch_links.py
+          python misc/fetch_outfits.py
 
       - name: Get latest Apk
         run: python script/down-apk.py ${{steps.var.outputs.version}}
@@ -79,6 +81,7 @@ jobs:
             boards_links.json
             boards_data.json
             characters_links.json
+            characters_outfits.json
             characters_data.json
 
         env:

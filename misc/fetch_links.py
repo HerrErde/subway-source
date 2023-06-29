@@ -46,6 +46,7 @@ async def extract_data(page, table_selector, json_file):
             }
 
             data.append(board_data)
+            print(f"Scraped: {name}")
 
     # Write the data to a JSON file
     with open(json_file, "w") as file:
