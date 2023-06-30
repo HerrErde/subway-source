@@ -2,6 +2,7 @@ import sys
 import os
 import requests
 import time
+import json
 from playwright.sync_api import sync_playwright
 
 
@@ -15,9 +16,10 @@ class TerminalColors:
     END = "\033[0m"
 
 
-delay = 300  # 5 mins
+delay = os.environ.get("DELAY", 5)  # 5 mins
 start_time = time.time()
 workflow_runs = 0
+debug = os.environ.get("DEBUG", True)
 
 repo_owner = os.environ.get("REPO_OWNER", "HerrErde")
 repo_name = os.environ.get("REPO_NAME", "subway-source")
@@ -41,17 +43,27 @@ def check_404(gplayapi_version):
 
 def get_version():
     # get version from gplayapi
-    gplayapi_response = requests.get(
-        "https://gplayapi.srik.me/api/apps/com.kiloo.subwaysurf"
-    )
-    gplayapi_data = gplayapi_response.json()
+    if debug:
+        file_path = "debug/gplay_version.json"  # Replace with the actual file path on your system
+        with open(file_path) as file:
+            gplayapi_data = json.load(file)
+    else:
+        gplayapi_response = requests.get(
+            "https://gplayapi.srik.me/api/apps/com.kiloo.subwaysurf"
+        )
+        gplayapi_data = gplayapi_response.json()
     gplayapi_version = gplayapi_data["version"]
 
     # get json appversion
-    json_response = requests.get(
-        "https://raw.githubusercontent.com/HerrErde/SubwayBooster/master/Android/data/com.kiloo.subwaysurf/files/version.json"
-    )
-    json_data = json_response.json()
+    if debug:
+        file_path = "debug/json_version.json"  # Replace with the actual file path on your system
+        with open(file_path) as file:
+            json_data = json.load(file)
+    else:
+        json_response = requests.get(
+            "https://raw.githubusercontent.com/HerrErde/SubwayBooster/master/Android/data/com.kiloo.subwaysurf/files/version.json"
+        )
+        json_data = json_response.json()
     json_version = json_data["appversion"]
 
     # get latest repo tag
