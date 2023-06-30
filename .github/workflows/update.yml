@@ -25,13 +25,13 @@ jobs:
 
           echo version=$(curl -s "https://gplayapi.srik.me/api/apps/$packageId" | jq -r '.version' | tr '.' '-') >> $GITHUB_OUTPUT
 
-      - name: Restore cache
+      - name: Restore Cache
         id: cache-restore
         uses: actions/cache/restore@v3
         with:
           path: |
             ~/.cache/
-          key: ${{ runner.os }}
+          key: playwright
 
       - name: Install
         run: |
@@ -39,12 +39,12 @@ jobs:
           playwright install
 
       - name: Save Cache
-        id: cache-save
         uses: actions/cache/save@v3
         with:
           path: |
             ~/.cache/
-          key: ${{ runner.os }}
+          key: playwright
+        if: steps.cache-restore.outputs.cache-hit != 'true'
 
       - name: Update Links
         run: |
