@@ -16,10 +16,10 @@ class TerminalColors:
     END = "\033[0m"
 
 
-delay = os.environ.get("DELAY", 5)  # 5 mins
+delay = os.environ.get("DELAY", 300)  # 5 mins
 start_time = time.time()
 workflow_runs = 0
-debug = os.environ.get("DEBUG", True)
+debug = os.environ.get("DEBUG", False)
 
 repo_owner = os.environ.get("REPO_OWNER", "HerrErde")
 repo_name = os.environ.get("REPO_NAME", "subway-source")
