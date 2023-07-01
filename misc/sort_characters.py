@@ -14,15 +14,25 @@ def extract(json_input_links):
     with open(json_input_links, "r") as f:
         link_data = json.load(f)
 
-    link_names = [item.get("name", "") for item in link_data]
-    link_names = [
-        name
-        .replace("Super Runner Fernando", "fernando")
-        .replace(" ", "")
-        .replace(".", "")
-        .lower()
-        for name in link_names
-    ]
+    with open("replace.json", "r") as f:
+        replace_data = json.load(f)
+
+    link_names = []
+    global_replace = replace_data.get("Global", {})
+    character_replace = replace_data.get("Characters", {})
+
+    for item in link_data:
+        if item.get("available", True):
+            name = item.get("name", "")
+
+            for board, replacement in character_replace.items():
+                name = name.replace(board, replacement)
+
+            for key, value in global_replace.items():
+                name = name.replace(key, value)
+
+            name = name.lower()
+            link_names.append(name)
 
     return link_names
 

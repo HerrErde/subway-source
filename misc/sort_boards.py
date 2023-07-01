@@ -13,23 +13,25 @@ def extract(json_input_links):
     with open(json_input_links, "r") as f:
         link_data = json.load(f)
 
-    link_names = [
-        re.sub(
-            r"\bhoverboard\b",
-            "default",
-            item.get("name", "")
-            .replace("Wrapped", "xmas2022")
-            .replace("8th Birthday", "birthday")
-            .replace("Color Shift", "colourshift")
-            .replace(" ", "")
-            .replace("-", "")
-            .replace("&", "")
-            .replace("Jr.", "")
-            .lower(),
-        )
-        for item in link_data
-        if item.get("available", True)
-    ]
+    with open("replace.json", "r") as f:
+        replace_data = json.load(f)
+
+    link_names = []
+    global_replace = replace_data.get("Global", {})
+    board_replace = replace_data.get("Boards", {})
+
+    for item in link_data:
+        if item.get("available", True):
+            name = item.get("name", "")
+
+            for board, replacement in board_replace.items():
+                name = name.replace(board, replacement)
+
+            for key, value in global_replace.items():
+                name = name.replace(key, value)
+
+            name = re.sub(r"\bhoverboard\b", "default", name.lower())
+            link_names.append(name)
 
     year = 2021
     for i in range(2, len(link_names) + 1):

@@ -1,0 +1,18 @@
+{
+  "Global": {
+    " ": "",
+    ".": "",
+    "-": "",
+    "&": ""
+  },
+  "Boards": {
+    "8th Birthday": "birthday",
+    "Wrapped": "xmas2022",
+    "Color Shift": "colourshift",
+    "Big Boss Board": "bigBoss",
+    "Jr.": ""
+  },
+  "Characters": {
+    "Super Runner Fernando": "fernando"
+  }
+}
