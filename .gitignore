@@ -2,3 +2,4 @@
 !replace.json
 *.zip
 *.apk
+.env
