@@ -20,7 +20,6 @@ jobs:
         run: |
           echo "orgName=sybo-games" >> $GITHUB_OUTPUT
           echo "appName=subwaysurfers" >> $GITHUB_OUTPUT
-          echo "appName2=subway-surfers" >> $GITHUB_OUTPUT
           packageId="com.kiloo.subwaysurf" >> $GITHUB_OUTPUT
 
           echo version=$(curl -s "https://gplayapi.srik.me/api/apps/$packageId" | jq -r '.version' | tr '.' '-') >> $GITHUB_OUTPUT
@@ -36,7 +35,7 @@ jobs:
       - name: Install
         run: |
           pip install pytest-playwright beautifulsoup4
-          playwright install
+          playwright install chromium
 
       - name: Save Cache
         uses: actions/cache/save@v3
@@ -44,7 +43,6 @@ jobs:
           path: |
             ~/.cache/
           key: playwright
-        if: steps.cache-restore.outputs.cache-hit != 'true'
 
       - name: Update Links
         run: |
