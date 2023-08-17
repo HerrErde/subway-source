@@ -22,7 +22,7 @@ jobs:
           echo "appName=subwaysurfers" >> $GITHUB_OUTPUT
           packageId="com.kiloo.subwaysurf" >> $GITHUB_OUTPUT
 
-          echo version=$(curl -s "https://gplayapi.srik.me/api/apps/$packageId" | jq -r '.version' | tr '.' '-') >> $GITHUB_OUTPUT
+          echo version=$(curl -s "https://gplayapi.herrerde.xyz/api/apps/$packageId" | jq -r '.version' | tr '.' '-') >> $GITHUB_OUTPUT
 
       - name: Restore Cache
         id: cache-restore

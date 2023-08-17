@@ -53,7 +53,7 @@ def get_version():
             gplayapi_data = json.load(file)
     else:
         gplayapi_response = requests.get(
-            "https://gplayapi.srik.me/api/apps/com.kiloo.subwaysurf"
+            "https://gplayapi.herrerde.xyz/api/apps/com.kiloo.subwaysurf"
         )
         gplayapi_data = gplayapi_response.json()
     gplayapi_version = gplayapi_data["version"]

@@ -5,7 +5,7 @@ import requests
 
 def version():
     # get version from gplayapi
-    response = requests.get("https://gplayapi.srik.me/api/apps/com.kiloo.subwaysurf")
+    response = requests.get("https://gplayapi.herrerde.xyz/api/apps/com.kiloo.subwaysurf")
     data = response.json()
     version = data["version"].replace(".", "-")
 

@@ -3,7 +3,7 @@
 packageId="com.kiloo.subwaysurf"
 appName="subwaysurfers"
 
-version=$(curl -s "https://gplayapi.srik.me/api/apps/$packageId" | jq -r '.version')
+version=$(curl -s "https://gplayapi.herrerde.xyz/api/apps/$packageId" | jq -r '.version')
 appVer=$(echo $version | tr '.' '-')
 
 # Specify the path to the .apk file
