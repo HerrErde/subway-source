@@ -48,8 +48,8 @@ def sort_json(json_input, link_names, json_output):
         data = json.load(f)
 
     ordered_data = []
-    count = 1
     skipped_names = []
+    count = 1
 
     for name in link_names:
         found = False

@@ -39,7 +39,7 @@ async def extract_data(page, table_selector, json_file):
             )
 
             board_data = {
-                "number": number,
+                "number": int(number),
                 "name": name,
                 "available": available,
                 "img_url": img_url,

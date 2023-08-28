@@ -79,7 +79,6 @@ jobs:
             boards_links.json
             boards_data.json
             characters_links.json
-            characters_outfits.json
             characters_data.json
 
         env:

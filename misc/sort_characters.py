@@ -45,27 +45,32 @@ def sort_json(json_input, link_names, json_output):
     skipped_names = []
     count = 1
 
-    for item in data:
-        if "id" in item:
-            item_id = item["id"].lower()
-            for ignore in ignore_strings:
-                item_id = item_id.replace(ignore, "")
+    for name in link_names:
+        found_item = None
+        for item in data:
+            if "id" in item:
+                item_id = item["id"].lower()
+                for ignore in ignore_strings:
+                    item_id = item_id.replace(ignore, "")
 
-            for other in other_strings:
-                if other in item_id:
-                    item_id = item_id.split(other)[0] + other
+                for other in other_strings:
+                    if other in item_id:
+                        item_id = item_id.split(other)[0] + other
 
-            # Check if the modified item_id is present in the names list
-            if item_id in link_names:
-                item_with_number = {
-                    "number": count,
-                    "id": item["id"],
-                    "outfits": item["outfits"],
-                }
-                count += 1
-                ordered_data.append(item_with_number)
-            else:
-                skipped_names.append(item["id"])
+                if item_id == name:
+                    found_item = item
+                    break
+
+        if found_item:
+            item_with_number = {
+                "number": count,
+                "id": found_item["id"],
+                "outfits": found_item["outfits"],
+            }
+            count += 1
+            ordered_data.append(item_with_number)
+        else:
+            skipped_names.append(name)
 
     with open(json_output, "w") as f:
         json.dump(ordered_data, f, indent=2)
