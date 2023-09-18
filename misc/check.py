@@ -49,7 +49,7 @@ def compare_characters(new_file, old_file, output_file):
         return
 
     with open(output_file, "a") as f:
-        f.write(f"- Added Characters: {added_ids}\n")
+        f.write("- Added Characters " + ", ".join(added_ids) + "\n")
 
         for entry in new_data:
             id_val = entry["id"]
@@ -58,17 +58,14 @@ def compare_characters(new_file, old_file, output_file):
             )
 
             if old_entry:
-                old_outfits = old_entry["outfits"]
-                new_outfits = entry["outfits"]
+                old_outfits = {outfit["id"] for outfit in old_entry.get("outfits", [])}
+                new_outfits = {outfit["id"] for outfit in entry.get("outfits", [])}
 
-                if old_outfits != new_outfits:
-                    added_outfits = {
-                        outfit["id"]
-                        for outfit in new_outfits
-                        if outfit not in old_outfits
-                    }
-                    for outfit in added_outfits:
-                        f.write(f"- Added Outfit {outfit} ({id_val})\n")
+                added_outfits = new_outfits - old_outfits
+                if added_outfits:
+                    f.write(
+                        f"- Added Outfit {', '.join(added_outfits)} ({entry['id']})\n"
+                    )
 
 
 def compare_boards(new_file, old_file, output_file):
@@ -87,7 +84,7 @@ def compare_boards(new_file, old_file, output_file):
         return
 
     with open(output_file, "a") as f:
-        f.write(f"- Added Boards: {added_ids}\n")
+        f.write("- Added Boards " + ", ".join(added_ids) + "\n")
 
         for entry in new_data:
             id_val = entry["id"]
@@ -96,17 +93,23 @@ def compare_boards(new_file, old_file, output_file):
             )
 
             if old_entry:
-                old_upgrades = old_entry["upgrades"]
-                new_upgrades = entry["upgrades"]
+                old_upgrades = set()
+                if isinstance(old_entry["upgrades"], list):
+                    old_upgrades = {upgrade["id"] for upgrade in old_entry["upgrades"]}
 
-                if old_upgrades != new_upgrades:
-                    added_upgrades = {
-                        upgrade["id"]
-                        for upgrade in new_upgrades
-                        if upgrade not in old_upgrades
-                    }
-                    for upgrade in added_upgrades:
-                        f.write(f"- Added Upgrade {upgrade} ({id_val})\n")
+                new_upgrades = set()
+                if isinstance(entry["upgrades"], list):
+                    new_upgrades = {upgrade["id"] for upgrade in entry["upgrades"]}
+
+                added_upgrades = new_upgrades - old_upgrades
+                if added_upgrades:
+                    f.write(
+                        "- Added Upgrades "
+                        + entry.get("name", "Unknown Name")
+                        + ": "
+                        + ", ".join(added_upgrades)
+                        + "\n"
+                    )
 
 
 if __name__ == "__main__":

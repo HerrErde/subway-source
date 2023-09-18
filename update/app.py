@@ -21,9 +21,9 @@ load_dotenv()
 start_time = time.time()
 workflow_runs = 0
 delay = int(os.environ.get("DELAY", 300))  # 5 mins
-minimal = os.environ.get("MINIMAL", False)
-debug = os.environ.get("DEBUG", False)
-debug_workflow = os.environ.get("DEBUG_RUN", False)
+minimal = os.environ.get("MINIMAL")
+debug = os.environ.get("DEBUG")
+debug_workflow = os.environ.get("DEBUG_RUN")
 
 repo_owner = os.environ.get("REPO_OWNER", "HerrErde")
 repo_name = os.environ.get("REPO_NAME", "subway-source")
