@@ -13,7 +13,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set vars
         id: var
@@ -21,28 +21,20 @@ jobs:
           echo "orgName=sybo-games" >> $GITHUB_OUTPUT
           echo "appName=subwaysurfers" >> $GITHUB_OUTPUT
           packageId="com.kiloo.subwaysurf" >> $GITHUB_OUTPUT
-
           echo version=$(curl -s "https://gplayapi.herrerde.xyz/api/apps/$packageId" | jq -r '.version' | tr '.' '-') >> $GITHUB_OUTPUT
 
-      - name: Restore Cache
-        id: cache-restore
-        uses: actions/cache/restore@v3
+      - name: Cache dependencies
+        uses: actions/cache@v3
         with:
-          path: |
-            ~/.cache/
-          key: playwright
+          path: ~/.cache/
+          key: ${{ runner.os }}-pip
+          restore-keys: |
+            ${{ runner.os }}-pip
 
       - name: Install
         run: |
           pip install pytest-playwright beautifulsoup4
           playwright install chromium
-
-      - name: Save Cache
-        uses: actions/cache/save@v3
-        with:
-          path: |
-            ~/.cache/
-          key: playwright
 
       - name: Update Links
         run: |
