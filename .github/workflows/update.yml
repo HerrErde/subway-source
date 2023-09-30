@@ -51,6 +51,7 @@ jobs:
         run: |
           python script/fetch_characters.py
           python script/fetch_boards.py
+          python collections.py
 
       - name: Update Game Data
         run: |
@@ -72,6 +73,7 @@ jobs:
             boards_data.json
             characters_links.json
             characters_data.json
+            collections_data.json
 
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
