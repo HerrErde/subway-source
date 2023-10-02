@@ -2,8 +2,8 @@ import json
 import sys
 
 json_input = "characters_output.json"
-json_input_links = "characters_links.json"
-json_output = "characters_data.json"
+json_input_links = "upload/characters_links.json"
+json_output = "upload/characters_data.json"
 
 ignore_strings = ["nflpa"]
 

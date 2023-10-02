@@ -1,7 +1,7 @@
 import json
 
 input_file = "collections.json"
-output_file = "collections_data.json"
+output_file = "upload/collections_data.json"
 
 type_mapping = {"Character": 2, "Hoverboard": 3}
 

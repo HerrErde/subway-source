@@ -81,7 +81,7 @@ async def main():
             fetch_data(
                 "https://subwaysurf.fandom.com/wiki/Characters",
                 "table.article-table",
-                "characters_links.json",
+                "upload/characters_links.json",
             )
         )
 
@@ -91,7 +91,7 @@ async def main():
             fetch_data(
                 "https://subwaysurf.fandom.com/wiki/Hoverboard",
                 "table.article-table",
-                "boards_links.json",
+                "upload/boards_links.json",
             )
         )
 

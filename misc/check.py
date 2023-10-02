@@ -10,10 +10,10 @@ files = [
     "characters_data.json",
 ]
 
-new_characters = "characters_data.json"
+new_characters = "upload/characters_data.json"
 old_characters = "characters_data_old.json"
 
-new_boards = "boards_data.json"
+new_boards = "upload/boards_data.json"
 old_boards = "boards_data_old.json"
 output_file_name = "update.txt"
 

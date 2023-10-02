@@ -3,8 +3,8 @@ import re
 import sys
 
 json_input = "boards_output.json"
-json_input_links = "boards_links.json"
-json_output = "boards_data.json"
+json_input_links = "upload/boards_links.json"
+json_output = "upload/boards_data.json"
 
 ignore_strings = ["nflpa", "sakar"]
 

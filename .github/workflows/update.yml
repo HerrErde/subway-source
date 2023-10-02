@@ -23,6 +23,9 @@ jobs:
           packageId="com.kiloo.subwaysurf" >> $GITHUB_OUTPUT
           echo version=$(curl -s "https://gplayapi.herrerde.xyz/api/apps/$packageId" | jq -r '.version' | tr '.' '-') >> $GITHUB_OUTPUT
 
+      - name: Create Folder
+        run: mkdir upload
+
       - name: Cache dependencies
         uses: actions/cache@v3
         with:
@@ -36,10 +39,10 @@ jobs:
           pip install pytest-playwright beautifulsoup4
           playwright install chromium
 
-      - name: Update Links
+      - name: Scrape Links
         run: |
-          python misc/fetch_links.py
-          python misc/fetch_outfits.py
+          python script/fetch_links.py
+          python script/fetch_outfits.py
 
       - name: Get latest Apk
         run: python script/down-apk.py ${{steps.var.outputs.version}}
@@ -51,7 +54,7 @@ jobs:
         run: |
           python script/fetch_characters.py
           python script/fetch_boards.py
-          python collections.py
+          python script/collections.py
 
       - name: Update Game Data
         run: |
@@ -68,12 +71,7 @@ jobs:
         with:
           body_path: 'update.txt'
           tag_name: ${{steps.var.outputs.version}}
-          files: |
-            boards_links.json
-            boards_data.json
-            characters_links.json
-            characters_data.json
-            collections_data.json
+          files: upload/*
 
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}

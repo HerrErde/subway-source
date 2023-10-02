@@ -78,7 +78,7 @@ def fetch_outfits(session, entry):
 
 
 def main(limit=None):
-    with open("characters_links.json", "r") as file:
+    with open("upload/characters_links.json", "r") as file:
         data = json.load(file)
 
     output = []
@@ -91,7 +91,7 @@ def main(limit=None):
     except KeyboardInterrupt:
         print("\nKeyboard interrupt received. Finishing current processing.")
 
-    with open("characters_outfit.json", "w", encoding="utf-8") as file:
+    with open("upload/characters_outfit.json", "w", encoding="utf-8") as file:
         json.dump(output, file, indent=2, ensure_ascii=False)
 
     print("Exiting gracefully.")
