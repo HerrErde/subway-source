@@ -21,7 +21,7 @@ jobs:
           echo "orgName=sybo-games" >> $GITHUB_OUTPUT
           echo "appName=subwaysurfers" >> $GITHUB_OUTPUT
           packageId="com.kiloo.subwaysurf" >> $GITHUB_OUTPUT
-          echo version=$(curl -s "https://gplayapi.herrerde.xyz/api/apps/$packageId" | jq -r '.version' | tr '.' '-') >> $GITHUB_OUTPUT
+          echo version=$(curl -s "https://gplayapi.cashlessconsumer.in/api/apps/$packageId" | jq -r '.version' | tr '.' '-') >> $GITHUB_OUTPUT
 
       - name: Create Folder
         run: mkdir upload
