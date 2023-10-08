@@ -72,6 +72,9 @@ def fetch_outfits(session, entry):
         if img_tag:
             img_url = img_tag["src"]
             img_url = img_url.replace(".png", "_hd.png")
+            img_url = (
+                img_url.split(".png")[0] + ".png" if ".png" in img_url else img_url
+            )
             outfits[i]["url"] = img_url
 
     return {"name": entry["name"], "outfits": outfits}
