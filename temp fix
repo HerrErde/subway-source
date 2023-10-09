@@ -27,40 +27,16 @@ async def extract_data(page, table_selector, json_file):
             else:
                 continue
 
-            img_element = await td_elements[5].query_selector(
-                "img"
-            )  # Select the 6th td element (index 5)
-
-            # Initialize available with a default value
-            available = True
-
-            if img_element:
-                alt_text = await img_element.get_attribute("alt")
-                if alt_text == "TbaName":
-                    available = False
-
             number = (await td_elements[0].text_content()).strip()
             name = (await td_elements[2].text_content()).strip()
 
             link_element = await td_elements[1].query_selector("a")
-            img_url = ""
+            img_url = (await link_element.get_attribute("href")) if link_element else ""
 
-            # Check if the link_element exists
-            if link_element:
-                # Check if the class of the link_element is "new"
-                link_class = await link_element.get_attribute("class")
-                if "new" not in link_class:
-                    img_url = (await link_element.get_attribute("href")).strip()
-
-            # Check if img_url is empty, and set img_url to None
-            if not img_url:
-                available = False
-                img_url = None
-            else:
-                # Remove everything after the .png extension in the image URL
-                img_url = (
-                    img_url.split(".png")[0] + ".png" if ".png" in img_url else img_url
-                )
+            # Remove everything after the .png extension in the image URL
+            img_url = (
+                img_url.split(".png")[0] + ".png" if ".png" in img_url else img_url
+            )
 
             board_data = {
                 "number": int(number),
