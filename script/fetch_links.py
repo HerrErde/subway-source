@@ -20,19 +20,16 @@ async def extract_data(page, table_selector, json_file):
             available_element = td_elements[4]
             status_text = (await available_element.text_content()).strip()
 
+            img_element = await td_elements[5].query_selector("img")
+
+            available = True
+
             if status_text in ["Yes", "No"]:
                 available = True
             elif status_text == "Unavailable":
                 available = False
             else:
                 continue
-
-            img_element = await td_elements[5].query_selector(
-                "img"
-            )  # Select the 6th td element (index 5)
-
-            # Initialize available with a default value
-            available = True
 
             if img_element:
                 alt_text = await img_element.get_attribute("alt")
