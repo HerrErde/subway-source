@@ -34,28 +34,23 @@ def main():
         return
 
     data = read_json(input_file)
+    collections_data = data.get("collections", {})
+    seasonal_collections_data = data.get("seasonalCollections", {})
+
+    collections = [
+        {"id": collection_id, "items": extract_items(collection_info)}
+        for collection_id, collection_info in collections_data.items()
+    ]
+
+    seasonal_collections = [
+        {"id": collection_id, "items": extract_items(collection_info)}
+        for collection_id, collection_info in seasonal_collections_data.items()
+    ]
 
     output_data = {
         "timeSlot": get_time_slot(data),
-        "collections": [
-            {
-                "id": collection_id,
-                "items": {
-                    item["id"]: {
-                        "id": item["id"],
-                        "type": type_mapping.get(item["type"]),
-                    }
-                    for item in collection_info.get("items", {}).values()
-                },
-            }
-            for collection_id, collection_info in data.get("collections", {}).items()
-        ],
-        "seasonalCollections": [
-            {"id": collection_id, "items": extract_items(collection_info)}
-            for collection_id, collection_info in data.get(
-                "seasonalCollections", {}
-            ).items()
-        ],
+        "collections": collections,
+        "seasonalCollections": seasonal_collections,
     }
 
     with open(output_file, "w") as file:
