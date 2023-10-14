@@ -22,60 +22,56 @@ def fetch_outfits(session, entry):
         return {"name": entry["name"], "outfits": None}
 
     toc = soup.find(id="toc")
-
     if toc is None:
         print("Error: toc element not found.")
         return {"name": entry["name"], "outfits": None}
 
-    exclude = {
-        "Appearance",
-        "History",
-        "Trivia",
-        "Gallery",
-        "Video",
-        "Videos",
-        "Old Outfit",
-        "Old Default",
-        "Reappearance",
-        "Re-sale",
-        "Re-sales",
-        "References",
-    }
+    appearance_section = toc.find("a", {"href": "#Appearance"})
+    if appearance_section is None:
+        print("Error: Appearance section not found.")
+        return {"name": entry["name"], "outfits": None}
 
-    toctext_spans = toc.find_all("span", class_="toctext")
-    outfits = [
-        {
-            "name": span.get_text(strip=True),
-            "url": "",
-        }
-        for span in toctext_spans
-        if span.get_text(strip=True) not in exclude
+    outfit_names = [
+        li.find("span", class_="toctext").get_text()
+        if li.find("span", class_="toctext")
+        else ""
+        for li in appearance_section.find_all_next("li")
     ]
 
-    tabber_div = soup.find("div", class_="tabber wds-tabber")
+    # Remove everything after "Outfit" and eliminate duplicates
+    cleaned_outfit_names = []
+    seen_names = set()
+    for name in outfit_names:
+        parts = name.split("Outfit")
+        outfit_name = parts[0] + "Outfit" if len(parts) > 1 else name
+        outfit_name = outfit_name.strip()
+        if outfit_name and outfit_name not in seen_names:
+            cleaned_outfit_names.append(outfit_name)
+            seen_names.add(outfit_name)
 
+    infobox_table = soup.find("table", class_="infobox")
+    if infobox_table is None:
+        print("Error: infobox table not found.")
+        return {"name": entry["name"], "outfits": None}
+
+    tabber_div = infobox_table.find("div", class_="tabber wds-tabber")
     if tabber_div is None:
-        print("Error: tabber div not found.")
+        print("Error: tabber div not found in infobox table.")
         return {"name": entry["name"], "outfits": None}
 
     tab_content_divs = tabber_div.find_all("div", class_="wds-tab__content")
-
-    if len(outfits) != len(tab_content_divs):
-        print(
-            f"Error: Number of outfits ({len(outfits)}) doesn't match the number of tab content divs ({len(tab_content_divs)})."
-        )
-        return {"name": entry["name"], "outfits": None}
+    outfits = []
+    tab_labels = tabber_div.find_all("div", class_="wds-tabs__tab-label")
 
     for i, tab_content_div in enumerate(tab_content_divs):
-        outfit_name = tab_content_div.find("a").get_text(strip=True)
+        outfit_name = cleaned_outfit_names[i] if i < len(cleaned_outfit_names) else ""
         img_tag = tab_content_div.find("img")
         if img_tag:
             img_url = img_tag["src"]
-            img_url = img_url.replace(".png", "_hd.png")
             img_url = (
                 img_url.split(".png")[0] + ".png" if ".png" in img_url else img_url
             )
-            outfits[i]["url"] = img_url
+            outfits.append({"name": outfit_name, "url": img_url})
 
     return {"name": entry["name"], "outfits": outfits}
 
@@ -90,7 +86,6 @@ def main(limit=None):
         with requests.Session() as session:
             for entry in data[:limit]:
                 output.append(fetch_outfits(session, entry))
-
     except KeyboardInterrupt:
         print("\nKeyboard interrupt received. Finishing current processing.")
 
