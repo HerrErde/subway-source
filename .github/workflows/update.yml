@@ -55,6 +55,7 @@ jobs:
           python script/fetch_characters.py
           python script/fetch_boards.py
           python script/collections.py
+          python script/calendar.py
 
       - name: Update Game Data
         run: |
