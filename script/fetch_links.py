@@ -1,103 +1,96 @@
 import sys
 import json
 import asyncio
+import os
 from playwright.async_api import async_playwright
 
 
 async def extract_data(page, table_selector, json_file):
-    # Wait for the table to load
+    print(f"Fetching data from URL: {page.url}")
     await page.wait_for_selector(table_selector)
-
-    # Extract the "td" elements from each "tr" element
-    tr_elements = await page.query_selector_all(f"{table_selector} tr")
+    print("Table loaded!")
 
     data = []
+    seen_names = set()
 
-    # Extract data from each "tr" element
+    tr_elements = await page.query_selector_all(f"{table_selector} tr")
+
     for tr_element in tr_elements:
         td_elements = await tr_element.query_selector_all("td")
-        if len(td_elements) >= 4:
-            available_element = td_elements[4]
-            status_text = (await available_element.text_content()).strip()
+        if len(td_elements) < 6:
+            continue
 
-            img_element = await td_elements[5].query_selector("img")
+        number = (await td_elements[0].text_content()).strip()
+        name = (await td_elements[2].text_content()).strip()
 
-            available = True
+        if name in seen_names:
+            continue
 
-            if status_text in ["Yes", "No"]:
-                available = True
-            elif status_text == "Unavailable":
-                available = False
-            else:
-                continue
+        seen_names.add(name)
 
-            if img_element:
-                alt_text = await img_element.get_attribute("alt")
-                if alt_text == "TbaName":
-                    available = False
+        status_text = (await td_elements[4].text_content()).strip()
+        img_element = await td_elements[5].query_selector("img")
 
-            number = (await td_elements[0].text_content()).strip()
-            name = (await td_elements[2].text_content()).strip()
+        available = status_text in ["Yes", "No"] and not img_element
 
-            link_element = await td_elements[1].query_selector("a")
-            img_url = ""
-
-            # Check if the link_element exists
-            if link_element:
-                # Check if the class of the link_element is "new"
-                link_class = await link_element.get_attribute("class")
-                if "new" not in link_class:
-                    img_url = (await link_element.get_attribute("href")).strip()
-
-            # Check if img_url is empty, and set img_url to None
-            if not img_url:
-                available = False
-                img_url = None
-            else:
-                # Remove everything after the .png extension in the image URL
+        img_url = None
+        link_element = await td_elements[1].query_selector("a")
+        if link_element:
+            link_class = await link_element.get_attribute("class")
+            if "new" not in link_class:
+                img_url = (await link_element.get_attribute("href")).strip()
                 img_url = (
                     img_url.split(".png")[0] + ".png" if ".png" in img_url else img_url
                 )
 
-            board_data = {
-                "number": int(number),
-                "name": name,
-                "available": available,
-                "img_url": img_url,
-            }
+        board_data = {
+            "number": int(number),
+            "name": name,
+            "available": available,
+            "img_url": img_url,
+        }
 
-            data.append(board_data)
-            print(f"Scraped: {name}")
-
-    # Write the data to a JSON file
-    with open(json_file, "w") as file:
-        json.dump(data, file, indent=2)
+        data.append(board_data)
+        print(f"Scraped: {name}")
 
 
 async def fetch_data(url, table_selector, json_file):
     async with async_playwright() as playwright:
-        # Launch a new browser instance
-        browser = await playwright.chromium.launch()
-
-        # Create a new browser context
+        browser = await playwright.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-gpu",
+                "--disable-software-rasterizer",
+                "--disable-dev-shm-usage",
+                "--user-agent=subway-source",
+            ],
+            channel="chromium",
+        )
         context = await browser.new_context()
 
-        # Create a new page
-        page = await context.new_page()
+        try:
+            page = await context.new_page()
+            await page.goto(url, timeout=1200000)
+            await extract_data(page, table_selector, json_file)
+        except Exception as e:
+            print(f"An error occurred: {e}")
+        finally:
+            await context.close()
+            await browser.close()
 
-        # Fetch data
-        await page.goto(url, timeout=1200000)
-        await extract_data(page, table_selector, json_file)
-
-        # Close the browser context
-        await context.close()
+    with open(json_file, "w") as file:
+        json.dump([], file, indent=2)
 
 
 async def main():
     tasks = []
 
-    # Fetch characters data
-    if len(sys.argv) == 1 or sys.argv[1] == "1":
+
+async def main():
+    tasks = []
+
+    if len(sys.argv) == 1 or sys.argv[1] in {"1", "2"}:
         tasks.append(
             fetch_data(
                 "https://subwaysurf.fandom.com/wiki/Characters",
@@ -105,9 +98,6 @@ async def main():
                 "upload/characters_links.json",
             )
         )
-
-    # Fetch boards data
-    if len(sys.argv) == 1 or sys.argv[1] == "2":
         tasks.append(
             fetch_data(
                 "https://subwaysurf.fandom.com/wiki/Hoverboard",
@@ -119,5 +109,4 @@ async def main():
     await asyncio.gather(*tasks)
 
 
-# Run the main function
 asyncio.run(main())
