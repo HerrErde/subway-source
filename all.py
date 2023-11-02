@@ -1,52 +1,64 @@
 import subprocess
-import time
 import requests
 import os
 import shutil
+import time
 
 
 def version():
-    # get version from gplayapi
-    response = requests.get(
-        "https://gplayapi.cashlessconsumer.in/api/apps/com.kiloo.subwaysurf"
-    )
+    url = "https://gplayapi.cashlessconsumer.in/api/apps/com.kiloo.subwaysurf"
+    response = requests.get(url)
     data = response.json()
-    version = data["version"].replace(".", "-")
-
-    return version
+    return data.get("version", "").replace(".", "-")
 
 
-# Check if the "gamedata" directory exists and delete it if it does
-if os.path.exists("gamedata"):
-    shutil.rmtree("gamedata")
+rm_file = [
+    "base.apk",
+    f"subwaysurfers-{version()}.zip",
+    "boards_output.json",
+    "boards_data_old.json",
+    "characters_output.json",
+    "characters_data_old.json",
+    "update.txt",
+]
 
-# Create the "upload" directory if it doesn't exist
+rm_dir = ["upload", "gamedata"]
+
+
+for file in rm_file:
+    if os.path.exists(file):
+        os.remove(file)
+
+
+for directory in rm_dir:
+    if os.path.exists(directory):
+        shutil.rmtree(directory)
+
 if not os.path.exists("upload"):
     os.mkdir("upload")
 
 scripts = [
-    #["script/fetch_links.py"],
-    #["script/fetch_outfits.py"],
-    #["script/down-apk.py", version()],
-    #["misc/unpack.py", version(), "subwaysurfers"],
-    #["script/fetch_characters.py"],
-    #["script/fetch_boards.py"],
-    #["script/collections.py"],
+    ["script/fetch_links.py"],
+    ["script/fetch_outfits.py"],
+    ["script/down-apk.py", version()],
+    ["misc/unpack.py", version(), "subwaysurfers"],
+    ["script/fetch_characters.py"],
+    ["script/fetch_boards.py"],
+    ["script/collections.py"],
+    ["script/calender.py"],
     ["misc/sort_characters.py"],
     ["misc/sort_boards.py"],
     ["misc/check.py"],
-    # Add more script commands and arguments as needed
 ]
 
 delay = 5
 
 
 def run_scripts():
-    start_time = time.time()  # Record the start time
     for script in scripts:
-        print(f"Running {script}...")
+        print(f"Running {script[0]}...")
         subprocess.run(["python"] + script, check=True)
-        print(f"Finished running {script}.\n")
+        print(f"Finished running {script[0]}.\n")
     time.sleep(delay)
 
 

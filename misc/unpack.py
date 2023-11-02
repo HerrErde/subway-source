@@ -1,18 +1,15 @@
 import os
-import subprocess
+import re
 import shutil
 import sys
-import re
 import zipfile
 
 
-def extract_from_zip(zip_file, extract_folder):
+def extract_zip(zip_file, extract_folder):
     with zipfile.ZipFile(zip_file, "r") as zf:
-        if "base.apk" in zf.namelist():
-            zf.extract("base.apk")
-            subprocess.run(["unzip", "base.apk", f"{extract_folder}/*"])
-        else:
-            subprocess.run(["unzip", zip_file, f"{extract_folder}/*"])
+        for item in zf.namelist():
+            if item.startswith(extract_folder):
+                zf.extract(item, "")
 
 
 def main(version, appName):
@@ -32,9 +29,7 @@ def main(version, appName):
     zip_file = f"{os.path.splitext(apk_file)[0]}.zip"
     os.rename(apk_file, zip_file)
 
-    # Extract from the zip file
-    extract_from_zip(zip_file, extract_folder)
-
+    extract_zip(zip_file, extract_folder)
     print("Unpacking completed!")
     shutil.move(extract_folder, "gamedata/")
     shutil.rmtree("assets/")
