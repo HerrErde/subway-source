@@ -42,5 +42,5 @@ for name in names:
     extracted_data.append({"id": item_id.replace(" ", ""), "outfits": outfits})
 
 # Save the extracted data to a JSON file
-with open("characters_output.json", "w") as file:
+with open("characters_data.json", "w") as file:
     json.dump(extracted_data, file, indent=2)

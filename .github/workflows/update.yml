@@ -39,11 +39,6 @@ jobs:
           pip install pytest-playwright beautifulsoup4
           playwright install chromium
 
-      - name: Scrape Links
-        run: |
-          python script/fetch_links.py
-          python script/fetch_outfits.py
-
       - name: Get latest Apk
         run: python script/down-apk.py ${{steps.var.outputs.version}}
 
@@ -56,11 +51,6 @@ jobs:
           python script/fetch_boards.py
           python script/collections.py
           python script/calender.py
-
-      - name: Update Game Data
-        run: |
-          python misc/sort_characters.py
-          python misc/sort_boards.py
 
       - name: Check changes
         id: update
