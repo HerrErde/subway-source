@@ -18,8 +18,6 @@ jobs:
       - name: Set vars
         id: var
         run: |
-          echo "orgName=sybo-games" >> $GITHUB_OUTPUT
-          echo "appName=subwaysurfers" >> $GITHUB_OUTPUT
           packageId="com.kiloo.subwaysurf" >> $GITHUB_OUTPUT
           echo version=$(curl -s "https://gplayapi.cashlessconsumer.in/api/apps/$packageId" | jq -r '.version' | tr '.' '-') >> $GITHUB_OUTPUT
 
@@ -43,7 +41,7 @@ jobs:
         run: python script/down-apk.py ${{steps.var.outputs.version}}
 
       - name: Unpack apk
-        run: python misc/unpack.py ${{steps.var.outputs.version}} ${{steps.var.outputs.appName}}
+        run: python misc/unpack.py ${{steps.var.outputs.version}}
 
       - name: Extract Game Data
         run: |

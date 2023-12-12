@@ -29,7 +29,7 @@ if 'class="apkm-badge">' not in page:
     sys.exit(1)
 
 # Temp fix
-url1 = f"/apk/{orgName}/{appName}/{appName}-{appVer}-release/{appName2}-{appVer}-2-android-apk-download/"
+url1 = f"/apk/{orgName}/{appName}/{appName}-{appVer}-release/{appName2}-{appVer}-android-apk-download/"
 
 response = requests.get(
     f"https://www.apkmirror.com{url1}", headers={"User-Agent": userAgent}
