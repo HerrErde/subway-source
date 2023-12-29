@@ -44,7 +44,7 @@ scripts = [
     ["misc/unpack.py", version()],
     ["script/fetch_characters.py"],
     ["script/fetch_boards.py"],
-    ["script/collections.py"],
+    ["script/collection.py"],
     ["script/calender.py"],
     ["misc/sort_characters.py"],
     ["misc/sort_boards.py"],
