@@ -34,8 +34,20 @@ jobs:
 
       - name: Install
         run: |
-          pip install pytest-playwright beautifulsoup4
-          playwright install chromium
+          pip install -r requirements.txt
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/
+          key: ${{ runner.os }}-pip
+          restore-keys: |
+            ${{ runner.os }}-pip
+
+      - name: Scrape Wiki Data
+        run: |
+          python script/fetch_links.py
+          python script/fetch_outfits.py
 
       - name: Get latest Apk
         run: python script/down-apk.py ${{steps.var.outputs.version}}
@@ -50,10 +62,14 @@ jobs:
           python script/collections.py
           python script/calender.py
 
+      - name: Update Game Data
+        run: |
+          python misc/sort_characters.py
+          python misc/sort_boards.py
+
       - name: Check changes
         id: update
-        run: |
-          python misc/check.py
+        run: python misc/check.py
 
       - name: Upload Data
         uses: softprops/action-gh-release@v1
@@ -61,6 +77,5 @@ jobs:
           body_path: 'update.txt'
           tag_name: ${{steps.var.outputs.version}}
           files: upload/*
-
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}

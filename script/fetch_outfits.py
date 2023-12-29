@@ -5,6 +5,10 @@ from bs4 import BeautifulSoup
 
 
 def fetch_outfits(session, entry):
+    if not entry["available"]:
+        print(f"Skipping '{entry['name']}'")
+        return None
+
     name = entry["name"].replace(" ", "_")
     url = f"https://subwaysurf.fandom.com/wiki/{name}"
     print(f"'{entry['name']}': {url}")
@@ -68,9 +72,7 @@ def fetch_outfits(session, entry):
         img_tag = tab_content_div.find("img")
         if img_tag:
             img_url = img_tag["src"]
-            img_url = (
-                img_url.split(".png")[0] + ".png" if ".png" in img_url else img_url
-            )
+            img_url = img_url.split(".png")[0] + ".png"
             outfits.append({"name": outfit_name, "url": img_url})
 
     return {"name": entry["name"], "outfits": outfits}
@@ -85,7 +87,9 @@ def main(limit=None):
     try:
         with requests.Session() as session:
             for entry in data[:limit]:
-                output.append(fetch_outfits(session, entry))
+                outfits_data = fetch_outfits(session, entry)
+                if outfits_data is not None:
+                    output.append(outfits_data)
     except KeyboardInterrupt:
         print("\nKeyboard interrupt received. Finishing current processing.")
 

@@ -1,46 +1,46 @@
 import sys
 import json
+import aiohttp
 import asyncio
-from playwright.async_api import async_playwright
+from bs4 import BeautifulSoup
 
-
-async def extract_data(page, table_selector):
-    print(f"Fetching data from URL: {page.url}")
-    await page.wait_for_selector(table_selector)
+async def extract_data(html):
+    soup = BeautifulSoup(html, "html.parser")
     print("Table loaded!")
 
     data = []
     seen_names = set()
 
-    tr_elements = await page.query_selector_all(f"{table_selector} tr")
+    tr_elements = soup.select("table.article-table tr")
 
     for tr_element in tr_elements:
-        td_elements = await tr_element.query_selector_all("td")
+        td_elements = tr_element.select("td")
         if len(td_elements) < 6:
             continue
 
-        number = (await td_elements[0].text_content()).strip()
-        name = (await td_elements[2].text_content()).strip()
+        number, name, status_text, img_element, link_element = (
+            td_elements[0].text.strip(),
+            td_elements[2].text.strip(),
+            td_elements[4].text.strip(),
+            td_elements[5].select_one("img"),
+            td_elements[1].select_one("a"),
+        )
 
         if name in seen_names:
             continue
 
         seen_names.add(name)
 
-        status_text = (await td_elements[4].text_content()).strip()
-        img_element = await td_elements[5].query_selector("img")
-
-        available = status_text in ["Yes", "No"] and not img_element
-
         img_url = None
-        link_element = await td_elements[1].query_selector("a")
         if link_element:
-            link_class = await link_element.get_attribute("class")
+            link_class = link_element.get("class", [])
             if "new" not in link_class:
-                img_url = (await link_element.get_attribute("href")).strip()
-                img_url = (
-                    img_url.split(".png")[0] + ".png" if ".png" in img_url else img_url
-                )
+                img_url = link_element.get("href", "").strip()
+                img_url = img_url.split(".png")[0] + ".png"
+
+        available = (
+            status_text in ["Yes", "No"] and not img_element and img_url is not None
+        )
 
         board_data = {
             "number": int(number),
@@ -54,59 +54,41 @@ async def extract_data(page, table_selector):
 
     return data
 
-
-async def fetch_data(url, table_selector, json_file):
-    async with async_playwright() as playwright:
-        browser = await playwright.chromium.launch(
-            headless=True,
-            args=[
-                "--no-sandbox",
-                "--disable-gpu",
-                "--disable-software-rasterizer",
-                "--disable-dev-shm-usage",
-                "--user-agent=subway-source",
-            ],
-            channel="chromium",
-        )
-        context = await browser.new_context()
-
-        try:
-            page = await context.new_page()
-            await page.goto(url, timeout=1200000)
-            data = await extract_data(page, table_selector)
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            data = []
-
-        await page.close()  # Close the page.
-        await context.close()  # Close the context.
-        await browser.close()  # Close the browser.
+async def fetch_data(session, url, json_file):
+    try:
+        async with session.get(url) as response:
+            response.raise_for_status()
+            html = await response.text()
+            data = await extract_data(html)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        data = []
 
     with open(json_file, "w") as file:
-        json.dump(data, file, indent=2)
-
+        # Use unicode_escape encoding for better string representation
+        json.dump(data, file, indent=2, ensure_ascii=False, default=lambda x: x.decode('unicode_escape'))
 
 async def main():
     tasks = []
 
-    if len(sys.argv) == 1 or sys.argv[1] == "1":
-        tasks.append(
-            fetch_data(
-                "https://subwaysurf.fandom.com/wiki/Characters",
-                "table.article-table",
-                "upload/characters_links.json",
+    async with aiohttp.ClientSession() as session:
+        if len(sys.argv) == 1 or sys.argv[1] == "1":
+            tasks.append(
+                fetch_data(
+                    session,
+                    "https://subwaysurf.fandom.com/wiki/Characters",
+                    "upload/characters_links.json",
+                )
             )
-        )
-        tasks.append(
-            fetch_data(
-                "https://subwaysurf.fandom.com/wiki/Hoverboard",
-                "table.article-table",
-                "upload/boards_links.json",
+            tasks.append(
+                fetch_data(
+                    session,
+                    "https://subwaysurf.fandom.com/wiki/Hoverboard",
+                    "upload/boards_links.json",
+                )
             )
-        )
 
-    await asyncio.gather(*tasks)
-
+        await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
     asyncio.run(main())

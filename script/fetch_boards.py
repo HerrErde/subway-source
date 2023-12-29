@@ -20,17 +20,17 @@ for name in names:
     # Extract the desired fields from the data
     item_id = data.get("id")
 
-    # Extract upgrades if available, otherwise set as "none"
+    # Extract upgrades if available, otherwise set as null
     upgrades = [
         {"id": upgrade.get("id").replace(" ", "")}
         if "name" not in upgrade and " " not in upgrade.get("id")
         else {"id": upgrade.get("id").replace(" ", "")}
         for upgrade in data.get("upgrades", [])
-    ] or "none"
+    ] or None
 
     # Store the extracted data
     extracted_data.append({"id": item_id.replace(" ", ""), "upgrades": upgrades})
 
 # Save the extracted data to a JSON file
-with open("upload/boards_data.json", "w") as file:
+with open("boards_output.json", "w") as file:
     json.dump(extracted_data, file, indent=2)
