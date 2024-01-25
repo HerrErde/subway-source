@@ -3,6 +3,8 @@ import json
 import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
+import re
+
 
 async def extract_data(html):
     soup = BeautifulSoup(html, "html.parser")
@@ -38,9 +40,17 @@ async def extract_data(html):
                 img_url = link_element.get("href", "").strip()
                 img_url = img_url.split(".png")[0] + ".png"
 
-        available = (
-            status_text in ["Yes", "No"] and not img_element and img_url is not None
-        )
+        # Use regex to check for "Tba"
+        tba_pattern = re.compile(r"TbaName\w*", re.IGNORECASE)
+        if tba_pattern.search(status_text) or tba_pattern.search(str(td_elements[3])):
+            available = False
+        else:
+            # Set availability to True if the first 4 letters of status_text are "Yes" or "No"
+            available = (
+                status_text[:3].lower() in ["yes", "no"]
+                and not img_element
+                and img_url is not None
+            )
 
         board_data = {
             "number": int(number),
@@ -54,6 +64,7 @@ async def extract_data(html):
 
     return data
 
+
 async def fetch_data(session, url, json_file):
     try:
         async with session.get(url) as response:
@@ -65,8 +76,8 @@ async def fetch_data(session, url, json_file):
         data = []
 
     with open(json_file, "w") as file:
-        # Use unicode_escape encoding for better string representation
-        json.dump(data, file, indent=2, ensure_ascii=False, default=lambda x: x.decode('unicode_escape'))
+        json.dump(data, file, indent=2, ensure_ascii=False)
+
 
 async def main():
     tasks = []
@@ -89,6 +100,7 @@ async def main():
             )
 
         await asyncio.gather(*tasks)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

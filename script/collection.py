@@ -54,7 +54,7 @@ def main():
     }
 
     with open(output_file, "w") as file:
-        json.dump(output_data, file, indent=4)
+        json.dump(output_data, file, indent=2)
 
 
 main()

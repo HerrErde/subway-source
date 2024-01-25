@@ -1,5 +1,4 @@
 import json
-import sys
 
 json_input = "characters_output.json"
 json_input_links = "upload/characters_links.json"
@@ -10,12 +9,14 @@ ignore_strings = ["nflpa"]
 other_strings = ["dak", "lamar", "tom", "odell", "patrick", "saquon"]
 
 
-def extract(json_input_links):
-    with open(json_input_links, "r") as f:
-        link_data = json.load(f)
+def read_json(file_path):
+    with open(file_path, "r") as f:
+        return json.load(f)
 
-    with open("replace.json", "r") as f:
-        replace_data = json.load(f)
+
+def extract(json_input_links):
+    link_data = read_json(json_input_links)
+    replace_data = read_json("replace.json")
 
     link_names = []
     global_replace = replace_data.get("Global", {})
@@ -37,52 +38,75 @@ def extract(json_input_links):
     return link_names
 
 
-def sort_json(json_input, link_names, json_output):
-    with open(json_input, "r") as f:
-        data = json.load(f)
+def append_data(item_id, count, ordered_data, item):
+    ordered_data.append(
+        {
+            "number": count,
+            "id": item["id"],
+            "outfits": item.get("outfits"),
+        }
+    )
 
+
+def sort_json(json_input, link_names, json_output):
+    data = read_json(json_input)
     ordered_data = []
-    skipped_names = []
-    count = 1
 
     for name in link_names:
         found_item = None
+
+        # Check for direct matches
         for item in data:
-            if "id" in item:
+            item_id = item.get("id", "").lower()
+
+            if item_id == name:
+                found_item = item
+                break
+
+        if found_item is None:
+            for item in data:
                 item_id = item["id"].lower()
+
+                # Apply replacements and transformations to item_id
                 for ignore in ignore_strings:
                     item_id = item_id.replace(ignore, "")
 
+                # Check if any other_strings are present in item_id
                 for other in other_strings:
                     if other in item_id:
                         item_id = item_id.split(other)[0] + other
+                        if item_id == name:
+                            found_item = item
+                            break
 
-                if item_id == name:
-                    found_item = item
-                    break
-
+        # If a match is found, append relevant information to ordered_data
         if found_item:
-            item_with_number = {
-                "number": count,
-                "id": found_item["id"],
-                "outfits": found_item["outfits"],
-            }
-            count += 1
-            ordered_data.append(item_with_number)
-        else:
-            skipped_names.append(name)
+            append_data(
+                found_item["id"].lower(),
+                len(ordered_data) + 1,
+                ordered_data,
+                found_item,
+            )
+
+    # Check for skipped item IDs in ordered_data
+    ordered_ids = {entry["id"] for entry in ordered_data}
+    all_ids = {item["id"] for item in data}
+    skipped_ids = all_ids - ordered_ids
+
+    # Append skipped items to ordered_data
+    for item_id in skipped_ids:
+        for item in data:
+            if item["id"] == item_id:
+                append_data(
+                    item_id.lower(),
+                    len(ordered_data) + 1,
+                    ordered_data,
+                    item,
+                )
 
     with open(json_output, "w") as f:
         json.dump(ordered_data, f, indent=2)
 
-    return skipped_names
 
-
-link_names = extract(json_input_links)
-skipped_names = sort_json(json_input, link_names, json_output)
-
-if skipped_names:
-    print("Skipped:")
-    for name in skipped_names:
-        print(name)
-    sys.exit("Error: Items in skipped list.")
+extracted_names = extract(json_input_links)
+sort_json(json_input, extracted_names, json_output)

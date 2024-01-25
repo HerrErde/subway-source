@@ -3,6 +3,7 @@ import requests
 import os
 import shutil
 import time
+import glob
 
 
 def version():
@@ -13,29 +14,14 @@ def version():
 
 
 rm_file = [
-    "base.apk",
-    f"subwaysurfers-{version()}.zip",
-    "boards_output.json",
-    "boards_data_old.json",
-    "characters_output.json",
-    "characters_data_old.json",
+    "*.apk",
+    "subwaysurfers-*.zip",
+    "*_output.json",
+    "*_data_old.json",
     "update.txt",
 ]
 
 rm_dir = ["upload", "gamedata"]
-
-
-for file in rm_file:
-    if os.path.exists(file):
-        os.remove(file)
-
-
-for directory in rm_dir:
-    if os.path.exists(directory):
-        shutil.rmtree(directory)
-
-if not os.path.exists("upload"):
-    os.mkdir("upload")
 
 scripts = [
     ["script/fetch_links.py"],
@@ -54,12 +40,38 @@ scripts = [
 delay = 5
 
 
+def cleanup():
+    print(f"Starting cleanup\n")
+    try:
+        for pattern in rm_file:
+            for file in glob.glob(pattern):
+                if os.path.exists(file):
+                    os.remove(file)
+
+        for directory in rm_dir:
+            if os.path.exists(directory):
+                shutil.rmtree(directory)
+        print(f"Finished cleanup\n")
+    except KeyboardInterrupt:
+        print("Cleanup interrupted by user.")
+        raise
+
+
 def run_scripts():
-    for script in scripts:
-        print(f"Running {script[0]}...")
-        subprocess.run(["python"] + script, check=True)
-        print(f"Finished running {script[0]}.\n")
-    time.sleep(delay)
+    try:
+        os.makedirs("upload", exist_ok=True)
+        for script in scripts:
+            print(f"Running {script[0]}...")
+            subprocess.run(["python"] + script, check=True)
+            print(f"Finished running {script[0]}.\n")
+            time.sleep(delay)
+    except KeyboardInterrupt:
+        print("Script execution interrupted by user.")
+        raise
 
 
-run_scripts()
+try:
+    cleanup()
+    run_scripts()
+except KeyboardInterrupt:
+    print("Script terminated by user.")
