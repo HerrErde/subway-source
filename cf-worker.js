@@ -27,8 +27,37 @@ async function handleRequest(request) {
         label: 'Next Release',
         message,
         color
-        //timeUntilNextRelease,
-        //timeUntilNextReleaseInDays: Math.floor(timeUntilNextRelease - (24 * 60 * 60 * 1000))
+      };
+
+      return new Response(JSON.stringify(output), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  } else if (pathname.startsWith('/gh/') && pathname.split('/').length === 3) {
+    const repo = getRepoFromPath(pathname);
+
+    try {
+      const latestRelease = await fetchLatestRelease(repo);
+
+      if (!latestRelease) {
+        throw new Error('Failed to fetch latest release');
+      }
+
+      const timeUntilNextRelease = calculateTimeUntilNextRelease(
+        latestRelease.published_at
+      );
+
+      const daysUntilNextRelease = Math.ceil(timeUntilNextRelease / (1000 * 60 * 60 * 24));
+      const nextReleaseDate = new Date(Date.now() + timeUntilNextRelease);
+      const formattedReleaseDate = nextReleaseDate.toLocaleString();
+
+      const output = {
+        days_count: `${daysUntilNextRelease} days`,
+        releaseDate: formattedReleaseDate
       };
 
       return new Response(JSON.stringify(output), {
@@ -40,7 +69,7 @@ async function handleRequest(request) {
       });
     }
   } else {
-    return new Response('Did you mean /shield/gh/subwaybooster?');
+    return new Response('Did you mean /gh/{repo}/shield?');
   }
 }
 
@@ -48,14 +77,14 @@ function isReleaseRequest(path) {
   const pathSegments = path.split('/');
   return (
     pathSegments.length === 4 &&
-    pathSegments[1] === 'shield' &&
-    pathSegments[2] === 'gh'
+    pathSegments[1] === 'gh' &&
+    pathSegments[3] === 'shield'
   );
 }
 
 function getRepoFromPath(path) {
   const pathSegments = path.split('/');
-  return pathSegments[3];
+  return pathSegments[2];
 }
 
 function calculateTimeUntilNextRelease(releaseDate) {
@@ -74,12 +103,11 @@ function getMessageAndColor(timeUntilNextRelease) {
   const data = [
     { message: 'Today', color: '3de24e', days: 0 }, // green
     { message: 'Tomorrow', color: 'ffff00', days: 1 }, // yellow
-    { message: 'This week', color: '0000ff', days: 6 }, // blue
     { message: 'Next week', color: '00ffff', days: 8 }, // cyan
     { message: 'Really Soon', color: 'ffa500', days: 12 }, // orange
-    { message: 'In the Future', color: '800080', days: 15 }, // purple
-    { message: 'In a While', color: 'ffc0cb', days: 18 }, // pink
-    { message: 'Not for a While', color: 'ff0000', days: 21 } // red
+    { message: 'In a While', color: 'ffc0cb', days: 15 }, // pink
+    { message: 'Not for a While', color: '800080', days: 18 }, // purple
+    { message: 'In the Future', color: 'ff0000', days: 21 } // red
   ];
 
   const daysUntilNextRelease = Math.floor(
