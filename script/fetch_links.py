@@ -1,6 +1,7 @@
 import sys
 import json
 import aiohttp
+import aiofiles
 import asyncio
 from bs4 import BeautifulSoup
 import re
@@ -20,18 +21,20 @@ async def extract_data(html):
         if len(td_elements) < 6:
             continue
 
-        number, name, status_text, img_element, link_element = (
+        number, link_element, name, status_text, img_element = (
             td_elements[0].text.strip(),
+            td_elements[1].select_one("a"),
             td_elements[2].text.strip(),
             td_elements[4].text.strip(),
             td_elements[5].select_one("img"),
-            td_elements[1].select_one("a"),
         )
 
         if name in seen_names:
             continue
 
         seen_names.add(name)
+
+        removed = bool(td_elements[2].select_one("s"))
 
         img_url = None
         if link_element:
@@ -59,6 +62,9 @@ async def extract_data(html):
             "img_url": img_url,
         }
 
+        if removed:
+            board_data["removed"] = True
+
         data.append(board_data)
         print(f"Scraped: {name}")
 
@@ -71,12 +77,12 @@ async def fetch_data(session, url, json_file):
             response.raise_for_status()
             html = await response.text()
             data = await extract_data(html)
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    except aiohttp.ClientError as e:
+        print(f"An error occurred fetching data from {url}: {e}")
         data = []
 
-    with open(json_file, "w") as file:
-        json.dump(data, file, indent=2, ensure_ascii=False)
+    async with aiofiles.open(json_file, "w") as file:
+        await file.write(json.dumps(data, indent=2, ensure_ascii=False))
 
 
 async def main():

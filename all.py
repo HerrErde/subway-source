@@ -4,6 +4,7 @@ import os
 import shutil
 import time
 import glob
+import argparse
 
 
 def version():
@@ -41,7 +42,7 @@ delay = 5
 
 
 def cleanup():
-    print(f"Starting cleanup\n")
+    print(f"Starting cleanup")
     try:
         for pattern in rm_file:
             for file in glob.glob(pattern):
@@ -70,8 +71,23 @@ def run_scripts():
         raise
 
 
-try:
-    cleanup()
-    run_scripts()
-except KeyboardInterrupt:
-    print("Script terminated by user.")
+def main():
+    parser = argparse.ArgumentParser(description="Run Subway Surfers scripts.")
+    parser.add_argument(
+        "-c", "--cleanup", action="store_true", help="Run cleanup function only"
+    )
+
+    args = parser.parse_args()
+
+    if args.cleanup:
+        cleanup()
+    else:
+        try:
+            cleanup()
+            run_scripts()
+        except KeyboardInterrupt:
+            print("Script terminated by user.")
+
+
+if __name__ == "__main__":
+    main()
