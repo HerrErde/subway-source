@@ -79,6 +79,11 @@ def sort_json(json_input, link_names, json_output):
                             found_item = item
                             break
 
+                # If the lowercase variant of the name is contained anywhere in the ID data
+                if found_item is None and name in item_id:
+                    found_item = item
+                    break
+
         # If a match is found, append relevant information to ordered_data
         if found_item:
             append_data(
