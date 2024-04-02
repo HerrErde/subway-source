@@ -25,24 +25,13 @@ jobs:
         run: mkdir upload
 
       - name: Cache dependencies
-        uses: actions/cache@v4
+        uses: actions/setup-python@v5.1.0
         with:
-          path: ~/.cache/
-          key: ${{ runner.os }}-pip
-          restore-keys: |
-            ${{ runner.os }}-pip
+          python-version: '3.x'
+          cache: 'pip'
 
       - name: Install
-        run: |
-          pip install -r requirements.txt
-
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/
-          key: ${{ runner.os }}-pip
-          restore-keys: |
-            ${{ runner.os }}-pip
+        run: pip install -r requirements.txt
 
       - name: Scrape Wiki Data
         run: |
@@ -72,7 +61,7 @@ jobs:
         run: python misc/check.py
 
       - name: Upload Data
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           body_path: 'update.txt'
           tag_name: ${{steps.var.outputs.version}}

@@ -12,7 +12,7 @@ LOG = {
     "ERROR": "\033[91m[ERROR] ",
     "SUCCESS": "\033[92m[SUCCESS]\033[94m ",
     "INFO": "\033[94m[INFO] ",
-    "INFO2": "\033[93m[INFO] ",
+    "WARN": "\033[93m[INFO] ",
     "DEBUG": "\033[35m[DEBUG] ",
     "END": "\033[0m",
 }
@@ -29,6 +29,7 @@ debug_workflow = bool(os.environ.get("DEBUG_RUN", False))
 
 repo_owner = str(os.environ.get("REPO_OWNER", "HerrErde"))
 repo_name = str(os.environ.get("REPO_NAME", "subway-source"))
+repo2_name = str(os.environ.get("REPO2_NAME", "SubwayBooster"))
 github_token = str(os.environ.get("GITHUB_API_KEY"))
 
 
@@ -42,60 +43,83 @@ def check_404(gplayapi_version):
 
 
 def get_version():
-    tag_version = None
     # get version from gplayapi
-    if debug:
+    if debug_workflow:
         file_path = "debug/gplay_version.json"
         with open(file_path) as file:
             gplayapi_data = json.load(file)
+        print("debug: gplay")
     else:
-        gplayapi_response = requests.get(
-            "https://gplayapi.herrerde.xyz/api/apps/com.kiloo.subwaysurf"
-        )
-        gplayapi_data = gplayapi_response.json()
-    gplayapi_version = gplayapi_data["version"]
-    if debug:
-        print("gplay")
+        if debug:
+            print("prod: gplay")
+        endpoint = "https://gplayapi.herrerde.xyz/api/apps/com.kiloo.subwaysurf"
+        gplayapi_response = requests.get(endpoint)
+        gplayapi_data = gplayapi_response.json()  # Extract JSON data from response
+    gplayapi_version = gplayapi_data.get("version")
 
     # get json appversion
-    if debug:
+    if debug_workflow:
         file_path = "debug/json_version.json"
         with open(file_path) as file:
             json_data = json.load(file)
+            print("debug: json")
     else:
-        json_response = requests.get(
-            "https://raw.githubusercontent.com/HerrErde/SubwayBooster/master/src/version.json"
-        )
-        json_data = json_response.json()
-    json_version = json_data["appversion"]
-    if debug:
-        print("json")
+        if debug:
+            print("prod: json")
+        endpoint = f"https://raw.githubusercontent.com/{repo_owner}/{repo2_name}/master/src/version.json"
+        headers = {
+            "Authorization": f"token {github_token}",
+            "Accept": "application/json",
+        }
+        json_response = requests.get(endpoint, headers=headers)
+        json_data = json_response.json()  # Extract JSON data from response
+    json_version = json_data.get("appversion")
 
     # get latest repo tag
-    if tag_version == None:
+    if debug_workflow:
+        file_path = "debug/tag_version.json"
+        with open(file_path) as file:
+            tag_data = json.load(file)
+        print("debug: tag")
+    else:
         if debug:
-            file_path = "debug/tag_version.json"
-            with open(file_path) as file:
-                tag_data = json.load(file)
-        else:
-            endpoint = (
-                f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
-            )
-            headers = {
-                "Authorization": f"token {github_token}",
-                "Accept": "application/json",
-            }
-            tag_response = requests.get(endpoint, headers=headers)
-            tag_data = tag_response.json()
-        tag_version = tag_data["tag_name"]
-    if debug:
-        print("tag")
+            print("prod: tag")
+        endpoint = (
+            f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
+        )
+        headers = {
+            "Authorization": f"token {github_token}",
+            "Accept": "application/json",
+        }
+        tag_response = requests.get(endpoint, headers=headers)
+        tag_data = tag_response.json()
+    tag_version = tag_data.get("tag_name")
 
     return gplayapi_version, json_version, tag_version
 
 
-# trigger subway-source workflow
-def trigger_github_workflow():
+def check_workflow_runs(repo_owner, repo_name, github_token):
+    endpoint = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/runs"
+    headers = {
+        "Authorization": f"token {github_token}",
+        "Accept": "application/vnd.github.v3+json",
+    }
+    params = {"status": "in_progress"}
+
+    response = requests.get(endpoint, headers=headers, params=params)
+
+    if response.ok:
+        workflow_runs = response.json().get("total_count", 0)
+        if workflow_runs > 0:
+            print(
+                f"{LOG['INFO']}A workflow is already running. Skipping trigger.{LOG['END']}"
+            )
+    else:
+        print(f"{LOG['ERROR']}Failed to retrieve workflow runs.{LOG['END']}")
+        return False
+
+
+def trigger_subwaysource_workflow():
     global workflow_runs
     if debug_workflow:
         print(
@@ -103,12 +127,15 @@ def trigger_github_workflow():
         )
         workflow_runs += 1
     else:
+        if check_workflow_runs(repo_owner, repo_name, github_token):
+            return
+
         endpoint = f"https://api.github.com/repos/{repo_owner}/{repo_name}/dispatches"
         headers = {
             "Authorization": f"token {github_token}",
             "Accept": "application/json",
         }
-        payload = {"event_type": "update_event", "client_ payload": {"ref": "master"}}
+        payload = {"event_type": "update_event", "client_payload": {"ref": "master"}}
         response = requests.post(endpoint, headers=headers, json=payload)
         if response.ok:
             print(f"{LOG['SUCCESS']}Triggered workflow successfully!{LOG['END']}")
@@ -127,6 +154,9 @@ def trigger_subwaybooster_workflow():
         )
         workflow_runs += 1
     else:
+        if check_workflow_runs(repo_owner, repo2_name, github_token):
+            return
+
         endpoint = f"https://api.github.com/repos/{repo_owner}/{repo2_name}/dispatches"
         headers = {
             "Authorization": f"token {github_token}",
@@ -149,7 +179,7 @@ def display_stuff(gplayapi_version, json_version):
     current_time = time.time()
 
     json_part = json_version.split(".")
-    sup_version = ".".join(json_part[:2]) + ".*"
+    cur_version = ".".join(json_part)
 
     # Convert elapsed_time to days, hours, minutes, and seconds
     elapsed_time = current_time - start_time
@@ -158,13 +188,13 @@ def display_stuff(gplayapi_version, json_version):
     elapsed_minutes, elapsed_seconds = divmod(elapsed_time, 60)
 
     if minimal:
-        output = {"Supported": sup_version, "Latest": gplayapi_version}
+        output = {"Current": cur_version, "Latest": gplayapi_version}
     else:
         output = {
-            "Start Time": time.ctime(time.time()),
+            "Start Time": time.ctime(start_time),
             "Elapsed Time": f"{int(elapsed_days)}d:{int(elapsed_hours)}h:{int(elapsed_minutes)}m:{int(elapsed_seconds)}s",
             "Workflow Runs": workflow_runs,
-            "Supported": sup_version,
+            "Current": cur_version,
             "Latest": gplayapi_version,
         }
 
@@ -173,26 +203,33 @@ def display_stuff(gplayapi_version, json_version):
 
 def main():
     try:
-        gplayapi_version, json_version, tag_version = get_version()
-        gplayapi_part = gplayapi_version.split(".")
-        json_part = json_version.split(".")
-        tag_part = tag_version.split("-")
-
         while True:
-            if int(gplayapi_part[1]) == int(tag_part[1]):
-                print(f"{LOG['INFO']}Version is up to date!{LOG['END']}")
-                display_stuff(gplayapi_version, json_version)
-                if gplayapi_part[1] != json_part[1]:
-                    trigger_subwaybooster_workflow()
-            else:
-                print(f"{LOG['INFO2']}Version is outdated!{LOG['END']}")
+            gplayapi_version, json_version, tag_version = get_version()
+            gplayapi_part = int(gplayapi_version.split(".")[1])
+            json_part = int(json_version.split(".")[1])
+            tag_part = int(tag_version.split("-")[1])
+
+            if debug:
+                print(
+                    f"gplayapi_part {gplayapi_part}, json {json_part}, tag {tag_part}"
+                )
+
+            if gplayapi_part == tag_part and gplayapi_part != json_part:
+                print(f"{LOG['WARN']}SubwayBooster version is outdated!{LOG['END']}")
+                trigger_subwaybooster_workflow()
+                print("Waiting for 6 minutes before making a new version request...")
+                time.sleep(6 * 60)  # Github Cache fix
+            elif gplayapi_part != tag_part:
+                print(f"{LOG['WARN']}subway-source version is outdated!{LOG['END']}")
                 if check_404(gplayapi_version):
                     print("No Version available")
                 else:
-                    trigger_github_workflow()
-                display_stuff(gplayapi_version, json_version)
-
+                    trigger_subwaysource_workflow()
+            else:
+                print(f"{LOG['INFO']}All Versions are up to date!{LOG['END']}")
+            display_stuff(gplayapi_version, json_version)
             time.sleep(delay)
+
     except KeyboardInterrupt:
         print("\nProgram interrupted. Exiting...")
         sys.exit(0)
