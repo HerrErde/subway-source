@@ -1,4 +1,5 @@
 import json
+import unicodedata
 
 json_input = "characters_output.json"
 json_input_links = "upload/characters_links.json"
@@ -14,6 +15,16 @@ def read_json(file_path):
         return json.load(f)
 
 
+def normalize_string(input_string):
+    # Normalize the string by replacing accented characters with their base counterparts
+    normalized_string = (
+        unicodedata.normalize("NFKD", input_string)
+        .encode("ASCII", "ignore")
+        .decode("utf-8")
+    )
+    return normalized_string
+
+
 def extract(json_input_links):
     link_data = read_json(json_input_links)
     replace_data = read_json("replace.json")
@@ -26,11 +37,14 @@ def extract(json_input_links):
         if item.get("available", True):
             name = item.get("name", "")
 
+            # Normalize the name by replacing accented characters
+            name = normalize_string(name)
+
             for board, replacement in character_replace.items():
-                name = name.replace(board, replacement)
+                name = name.replace(normalize_string(board), replacement)
 
             for key, value in global_replace.items():
-                name = name.replace(key, value)
+                name = name.replace(normalize_string(key), value)
 
             name = name.lower()
             link_names.append(name)

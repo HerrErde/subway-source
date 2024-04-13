@@ -75,13 +75,13 @@ async def fetch_data(session, url, json_file):
     try:
         async with session.get(url) as response:
             response.raise_for_status()
-            html = await response.text()
+            html = await response.text(encoding="utf-8")  # Ensure correct encoding
             data = await extract_data(html)
     except aiohttp.ClientError as e:
         print(f"An error occurred fetching data from {url}: {e}")
         data = []
 
-    async with aiofiles.open(json_file, "w") as file:
+    async with aiofiles.open(json_file, "w", encoding="utf-8") as file:
         await file.write(json.dumps(data, indent=2, ensure_ascii=False))
 
 
