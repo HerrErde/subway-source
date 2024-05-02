@@ -33,6 +33,7 @@ scripts = [
     ["script/fetch_boards.py"],
     ["script/collection.py"],
     ["script/calender.py"],
+    ["script/mailbox.py"],
     ["misc/sort_characters.py"],
     ["misc/sort_boards.py"],
     ["misc/check.py"],

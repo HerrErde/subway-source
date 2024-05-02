@@ -50,6 +50,7 @@ jobs:
           python script/fetch_boards.py
           python script/collection.py
           python script/calender.py
+          python script/mailbox.py
 
       - name: Update Game Data
         run: |
