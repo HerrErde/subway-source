@@ -31,6 +31,7 @@ scripts = [
     ["misc/unpack.py", version()],
     ["script/fetch_characters.py"],
     ["script/fetch_boards.py"],
+    ["script/playerprofile.py"],
     ["script/collection.py"],
     ["script/calender.py"],
     ["script/mailbox.py"],
@@ -72,16 +73,36 @@ def run_scripts():
         raise
 
 
+def extract():
+    try:
+        print("Downloading Apk...")
+        subprocess.run(["python", "script/down-apk.py", version()], check=True)
+        print("Extracting Apk...")
+        subprocess.run(["python", "misc/unpack.py", version()], check=True)
+    except KeyboardInterrupt:
+        print("Script execution interrupted by user.")
+        raise
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run Subway Surfers scripts.")
     parser.add_argument(
         "-c", "--cleanup", action="store_true", help="Run cleanup function only"
+    )
+    parser.add_argument(
+        "-e",
+        "--extract",
+        action="store_true",
+        help="Download and extract the latets apk",
     )
 
     args = parser.parse_args()
 
     if args.cleanup:
         cleanup()
+    if args.extract:
+        cleanup()
+        extract()
     else:
         try:
             cleanup()

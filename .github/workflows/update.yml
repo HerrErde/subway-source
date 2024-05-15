@@ -48,6 +48,7 @@ jobs:
         run: |
           python script/fetch_characters.py
           python script/fetch_boards.py
+          python script/playerprofile.py
           python script/collection.py
           python script/calender.py
           python script/mailbox.py
