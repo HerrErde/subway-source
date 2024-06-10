@@ -36,6 +36,7 @@ def get_scripts(type, version):
         ["script/fetch_characters.py"],
         ["script/fetch_boards.py"],
         ["script/playerprofile.py"],
+        ["script/userstats.py"],
         ["script/collection.py"],
         ["script/calender.py"],
         ["script/mailbox.py"],
