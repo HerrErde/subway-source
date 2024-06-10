@@ -54,8 +54,8 @@ def main(version, app_name):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python unpack.py <version> <appName>")
+    if len(sys.argv) != 2:
+        print("Usage: python unpack.py <version>")
         exit(1)
 
     version = sys.argv[1]

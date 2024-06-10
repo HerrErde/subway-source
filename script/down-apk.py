@@ -8,11 +8,20 @@ if len(sys.argv) < 2:
     )
     sys.exit(1)
 
+
+appVer = sys.argv[1]
+
+
+if not re.match(r"^\d{1,2}-\d{1,2}-\d{1,2}$", appVer):
+    print(
+        "Error: Invalid version format. Please use the format 'X-Y-Z' (e.g., '3-12-2')."
+    )
+    exit(1)
+
 userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
 orgName = "sybo-games"
 appName = "subwaysurfers"
 
-appVer = sys.argv[1]
 
 url = f"https://www.apkmirror.com/apk/{orgName}/{appName}/{appName}-{appVer}-release"
 
