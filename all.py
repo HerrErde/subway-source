@@ -27,8 +27,8 @@ rm_dir = ["upload", "gamedata"]
 scripts = [
     ["script/fetch_links.py"],
     ["script/fetch_outfits.py"],
-    ["script/down-apk.py", version()],
-    ["misc/unpack.py", version()],
+    ["script/down-ipa.py", version()],
+    ["misc/unpack-ipa.py", version()],
     ["script/fetch_characters.py"],
     ["script/fetch_boards.py"],
     ["script/playerprofile.py"],

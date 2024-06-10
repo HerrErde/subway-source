@@ -2,5 +2,6 @@
 !replace.json
 *.zip
 *.apk
+*.ipa
 .env
 update.txt
