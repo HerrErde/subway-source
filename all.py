@@ -30,6 +30,7 @@ rm_dir = ["upload", "gamedata"]
 def get_scripts(type, version):
     return [
         ["script/fetch_links.py"],
+        ["script/fetch_profile.py"],
         ["script/fetch_outfits.py"],
         [f"script/down-{type}.py", version],
         [f"misc/unpack-{type}.py", version],

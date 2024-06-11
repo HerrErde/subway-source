@@ -36,6 +36,7 @@ jobs:
       - name: Scrape Wiki Data
         run: |
           python script/fetch_links.py
+          python script/fetch_profile.py
           python script/fetch_outfits.py
 
       - name: Get latest Apk
