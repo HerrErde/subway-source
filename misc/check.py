@@ -6,26 +6,27 @@ org_name = "HerrErde"
 repo_name = "subway-source"
 
 files = [
-    "boards_data.json",
     "characters_data.json",
+    "boards_data.json",
 ]
 
-new_characters = "upload/characters_data.json"
-old_characters = "characters_data_old.json"
+characters = "characters_data.json"
+hoverboards = "boards_data.json"
 
-new_boards = "upload/boards_data.json"
-old_boards = "boards_data_old.json"
-output_file_name = "update.txt"
+output_file = "update.txt"
 
 
 def download_latest_files():
     base_url = f"https://github.com/{org_name}/{repo_name}/releases/latest/download/"
     for file in files:
         url = f"{base_url}{file}"
-        download_file(url, file[:-5] + "_old.json")
+        download_file(url, file.replace(".json", "_old.json"))
 
 
 def download_file(url, filename):
+    directory = os.path.dirname(filename)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
     with requests.Session() as session:
         response = session.get(url)
         response.raise_for_status()
@@ -33,11 +34,13 @@ def download_file(url, filename):
             file.write(response.content)
 
 
-def compare_characters(new_file, old_file, output_file):
+def compare_characters(file, output_file):
+    old_file = file.replace(".json", "_old.json")
+
     with open(old_file, "r") as f:
         old_data = json.load(f)
 
-    with open(new_file, "r") as f:
+    with open("upload/" + file, "r") as f:
         new_data = json.load(f)
 
     old_ids = {entry["id"] for entry in old_data}
@@ -49,7 +52,7 @@ def compare_characters(new_file, old_file, output_file):
         return
 
     with open(output_file, "a") as f:
-        f.write("- Added Characters " + ", ".join(added_ids) + "\n")
+        f.write("- Added Characters: " + ", ".join(added_ids) + "\n")
 
         for entry in new_data:
             id_val = entry["id"]
@@ -64,15 +67,17 @@ def compare_characters(new_file, old_file, output_file):
                 added_outfits = new_outfits - old_outfits
                 if added_outfits:
                     f.write(
-                        f"- Added Outfit {', '.join(added_outfits)} ({entry['id']})\n"
+                        f"- Added Outfits for {entry['id']}: {', '.join(added_outfits)}\n"
                     )
 
 
-def compare_boards(new_file, old_file, output_file):
+def compare_boards(file, output_file):
+    old_file = file.replace(".json", "_old.json")
+
     with open(old_file, "r") as f:
         old_data = json.load(f)
 
-    with open(new_file, "r") as f:
+    with open("upload/" + file, "r") as f:
         new_data = json.load(f)
 
     old_ids = {entry["id"] for entry in old_data}
@@ -84,7 +89,7 @@ def compare_boards(new_file, old_file, output_file):
         return
 
     with open(output_file, "a") as f:
-        f.write("- Added Boards " + ", ".join(added_ids) + "\n")
+        f.write("- Added Boards: " + ", ".join(added_ids) + "\n")
 
         for entry in new_data:
             id_val = entry["id"]
@@ -93,13 +98,12 @@ def compare_boards(new_file, old_file, output_file):
             )
 
             if old_entry:
-                old_upgrades = set()
-                if isinstance(old_entry["upgrades"], list):
-                    old_upgrades = {upgrade["id"] for upgrade in old_entry["upgrades"]}
-
-                new_upgrades = set()
-                if isinstance(entry["upgrades"], list):
-                    new_upgrades = {upgrade["id"] for upgrade in entry["upgrades"]}
+                old_upgrades = {
+                    upgrade["id"] for upgrade in old_entry.get("upgrades", []) or []
+                }
+                new_upgrades = {
+                    upgrade["id"] for upgrade in entry.get("upgrades", []) or []
+                }
 
                 added_upgrades = new_upgrades - old_upgrades
                 if added_upgrades:
@@ -114,6 +118,6 @@ def compare_boards(new_file, old_file, output_file):
 
 if __name__ == "__main__":
     download_latest_files()
-    with open(output_file_name, "w") as output_file:
-        compare_characters(new_characters, old_characters, output_file_name)
-        compare_boards(new_boards, old_boards, output_file_name)
+    with open(output_file, "w") as file:
+        compare_characters(characters, output_file)
+        compare_boards(hoverboards, output_file)
