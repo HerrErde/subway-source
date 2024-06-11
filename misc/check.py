@@ -5,13 +5,11 @@ import requests
 org_name = "HerrErde"
 repo_name = "subway-source"
 
-files = [
-    "characters_data.json",
-    "boards_data.json",
-]
+files = ["characters_data.json", "boards_data.json", "playerprofile_data.json"]
 
 characters = "characters_data.json"
 hoverboards = "boards_data.json"
+playerprofile = "playerprofile_data.json"
 
 output_file = "update.txt"
 
@@ -116,8 +114,38 @@ def compare_boards(file, output_file):
                     )
 
 
+def compare_profile(file, output_file):
+    old_file = file.replace(".json", "_old.json")
+
+    with open(old_file, "r") as f:
+        old_data = json.load(f)
+
+    with open("upload/" + file, "r") as f:
+        new_data = json.load(f)
+
+    added_portrait = set(new_data["profilePortraits"]) - set(
+        old_data["profilePortraits"]
+    )
+    added_frame = set(new_data["profileFrames"]) - set(old_data["profileFrames"])
+    added_background = set(new_data["profileBackgrounds"]) - set(
+        old_data["profileBackgrounds"]
+    )
+
+    if not added_portrait and not added_frame and not added_background:
+        return
+
+    with open(output_file, "a") as f:
+        if added_portrait:
+            f.write("- Added Portraits: " + ", ".join(added_portrait) + "\n")
+        if added_frame:
+            f.write("- Added Frames: " + ", ".join(added_frame) + "\n")
+        if added_background:
+            f.write("- Added Backgrounds: " + ", ".join(added_background) + "\n")
+
+
 if __name__ == "__main__":
     download_latest_files()
     with open(output_file, "w") as file:
         compare_characters(characters, output_file)
         compare_boards(hoverboards, output_file)
+        compare_profile(playerprofile, output_file)
