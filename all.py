@@ -125,17 +125,21 @@ def main():
         )
         exit(1)
 
-    if args.cleanup:
-        cleanup()
-    if args.extract:
-        cleanup()
-        extract(args.type, args.version)
-    else:
-        try:
+    try:
+        if args.cleanup:
+            cleanup()
+        elif args.extract:
+            cleanup()
+            extract(args.type, args.version)
+        else:
             cleanup()
             run_scripts(args.type, args.version)
-        except KeyboardInterrupt:
-            print("Script terminated by user.")
+    except Exception as e:
+        print("Error:", e)
+        raise
+    except KeyboardInterrupt:
+        print("Script terminated by user.")
+        raise
 
 
 if __name__ == "__main__":
