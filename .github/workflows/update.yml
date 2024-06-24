@@ -40,7 +40,7 @@ jobs:
           python script/fetch_outfits.py
 
       - name: Get latest Apk
-        run: python script/down-ipa.py ${{steps.var.outputs.version}}
+        run: python script/down-ipa.py ${{steps.var.outputs.version}} ${{ secrets.SESSION }}
 
       - name: Unpack apk
         run: python misc/unpack-ipa.py ${{steps.var.outputs.version}}

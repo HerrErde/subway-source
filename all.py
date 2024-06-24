@@ -6,6 +6,29 @@ import shutil
 import time
 import glob
 import argparse
+import browser_cookie3
+
+
+def get_session():
+    # Retrieve Firefox cookies
+    cookies = browser_cookie3.firefox()
+
+    # Filter for cookies from "armconverter.com"
+    armconverter_cookies = [
+        cookie for cookie in cookies if "armconverter.com" in cookie.domain
+    ]
+
+    # Filter for session cookies
+    session_cookies = [cookie for cookie in armconverter_cookies if not cookie.expires]
+
+    # Return the session cookies values
+    session_cookie_values = [cookie.value for cookie in session_cookies]
+
+    # Print the session cookies values
+    for value in session_cookie_values:
+        print(value)
+
+    return session_cookie_values
 
 
 def version():
@@ -27,12 +50,9 @@ rm_file = [
 rm_dir = ["upload", "gamedata"]
 
 
-def get_scripts(type, version):
+def get_scripts(type, version, session):
     return [
-        ["script/fetch_links.py"],
-        ["script/fetch_profile.py"],
-        ["script/fetch_outfits.py"],
-        [f"script/down-{type}.py", version],
+        [f"script/down-{type}.py", version, session[0]],
         [f"misc/unpack-{type}.py", version],
         ["script/fetch_characters.py"],
         ["script/fetch_boards.py"],
@@ -68,7 +88,8 @@ def cleanup():
 
 
 def run_scripts(type, version):
-    scripts = get_scripts(type, version)
+    session = get_session()
+    scripts = get_scripts(type, version, session)
     try:
         print(f"Choosing type {type}")
         print(f"Choosing version {version}")
