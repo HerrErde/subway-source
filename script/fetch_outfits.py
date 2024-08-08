@@ -3,6 +3,9 @@ import sys
 import requests
 from bs4 import BeautifulSoup
 
+input_file_path = "temp/upload/characters_links.json"
+output_file_path = "temp/upload/characters_outfit.json"
+
 
 def fetch_outfits(session, entry):
     if not entry["available"]:
@@ -81,7 +84,7 @@ def fetch_outfits(session, entry):
 
 
 def main(limit=None):
-    with open("upload/characters_links.json", "r") as file:
+    with open(input_file_path, "r") as file:
         data = json.load(file)
 
     output = []
@@ -95,7 +98,7 @@ def main(limit=None):
     except KeyboardInterrupt:
         print("\nKeyboard interrupt received. Finishing current processing.")
 
-    with open("upload/characters_outfit.json", "w", encoding="utf-8") as file:
+    with open(output_file_path, "w", encoding="utf-8") as file:
         json.dump(output, file, indent=2, ensure_ascii=False)
 
     print("Exiting gracefully.")

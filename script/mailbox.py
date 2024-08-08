@@ -1,7 +1,7 @@
 import json
 
-input_file_path = "gamedata/mailbox.json"
-output_file_path = "upload/mailbox_data.json"
+input_file_path = "temp/gamedata/mailbox.json"
+output_file_path = "temp/upload/mailbox_data.json"
 
 with open(input_file_path, "r") as input_file:
     data = json.load(input_file)

@@ -101,5 +101,5 @@ apk_url = f"https://www.apkmirror.com{url3}"
 print(apk_url, file=sys.stderr)
 
 response = requests.get(apk_url, headers={"User-Agent": userAgent})
-with open(f"{appName}-{appVer}.apk", "wb") as f:
+with open(f"temp/{appName}-{appVer}.apk", "wb") as f:
     f.write(response.content)

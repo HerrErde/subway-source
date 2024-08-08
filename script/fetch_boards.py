@@ -1,7 +1,10 @@
 import json
 
+input_file_path = "temp/gamedata/boards.json"
+output_file_path = "temp/output/boards_output.json"
+
 # Read the file content into a variable
-with open("gamedata/boards.json") as file:
+with open(input_file_path) as file:
     json_data = json.load(file)
 
 # Extract the board names using list comprehension
@@ -34,5 +37,5 @@ for name in names:
     extracted_data.append({"id": item_id.replace(" ", ""), "upgrades": upgrades})
 
 # Save the extracted data to a JSON file
-with open("boards_output.json", "w") as file:
+with open(output_file_path, "w") as file:
     json.dump(extracted_data, file, indent=2)

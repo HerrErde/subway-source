@@ -1,7 +1,7 @@
 import json
 
-input_file_path = "gamedata/calendars.json"
-output_file_path = "upload/calendar_data.json"
+input_file_path = "temp/gamedata/calendars.json"
+output_file_path = "temp/upload/calendar_data.json"
 
 with open(input_file_path, "r") as input_file:
     data = json.load(input_file)

@@ -4,7 +4,7 @@ import json
 
 url = "https://subwaysurf.fandom.com/wiki/Player_Profile"
 
-filename = "upload/playerprofile_links.json"
+filename = "temp/upload/playerprofile_links.json"
 
 
 def fetch_data(url):

@@ -5,3 +5,4 @@
 *.ipa
 .env
 update.txt
+temp/

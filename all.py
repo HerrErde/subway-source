@@ -8,9 +8,9 @@ import glob
 import argparse
 
 
-
 def get_session():
     import browser_cookie3
+
     # Retrieve Firefox cookies
     cookies = browser_cookie3.firefox()
 
@@ -48,11 +48,13 @@ def get_rm(nodownload):
         "update.txt",
     ]
 
-    rm_dir = ["upload", "gamedata"]
+    rm_dir = []
 
     if not nodownload:
         ipa_file = "*.ipa"
         rm_file.insert(0, ipa_file)
+        tmp_dir = "temp"
+        rm_dir.insert(0, tmp_dir)
 
     return rm_file, rm_dir
 
@@ -99,8 +101,7 @@ def cleanup(nodownload):
         raise
 
 
-def run_scripts(type, version, nodownload):
-    delay = 5
+def run_scripts(type, version, nodownload, delay):
     session = ""
     if nodownload:
         pass
@@ -108,9 +109,10 @@ def run_scripts(type, version, nodownload):
         session = get_session()
     scripts = get_scripts(type, version, session, nodownload)
     try:
-        print(f"Choosing type {type}")
-        print(f"Choosing version {version}")
-        os.makedirs("upload", exist_ok=True)
+        print(f"Choosing typ: {type}")
+        print(f"Choosing version: {version}")
+        os.makedirs("temp/output", exist_ok=True)
+        os.makedirs("temp/upload", exist_ok=True)
         for script in scripts:
             print(f"Running {script[0]}...")
             subprocess.run(["python"] + script, check=True)
@@ -123,7 +125,7 @@ def run_scripts(type, version, nodownload):
 
 def extract(type, version):
     try:
-        print(f"Choosing type {type}")
+        print(f"Choosing type: {type}")
         print(f"Downloading {version}...")
         subprocess.run(["python", f"script/down-{type}.py", version], check=True)
         print(f"Extracting {type}...")
@@ -160,6 +162,13 @@ def main():
         action="store_true",
         help="Run scripts without downloading game file (Game has to be downloaded beforehand)",
     )
+    parser.add_argument(
+        "-dly",
+        "--delay",
+        type=int,
+        default=5,
+        help="Change the delay between the running scripts",
+    )
 
     args = parser.parse_args()
 
@@ -174,10 +183,10 @@ def main():
             cleanup(args.nodownload)
         elif args.extract:
             cleanup(args.nodownload)
-            extract(args.type, args.version, args.nodownload)
+            extract(args.type, args.version, args.nodownload, args.delay)
         else:
             cleanup(args.nodownload)
-            run_scripts(args.type, args.version, args.nodownload)
+            run_scripts(args.type, args.version, args.nodownload, args.delay)
     except Exception as e:
         print("Error:", e)
         raise

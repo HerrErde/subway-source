@@ -30,11 +30,11 @@ def find_extraction_folder(zip_file):
 
 def main(version, app_name):
     # Specify the path to the .apk file
-    apk_file = f"{app_name}-{version}.apk"
+    apk_file = f"temp/{app_name}-{version}.apk"
     print(apk_file)
 
     # Check if the specified file exists and rename it to .zip
-    zip_file = f"{os.path.splitext(apk_file)[0]}.zip"
+    zip_file = f"temp/{os.path.splitext(apk_file)[0]}.zip"
     try:
         os.rename(apk_file, zip_file)
     except FileNotFoundError:
@@ -50,7 +50,7 @@ def main(version, app_name):
         extract_zip(zip_file, extract_folder)
         print("Extraction completed!")
 
-        target_folder = "gamedata"
+        target_folder = "temp/gamedata"
         shutil.move(extract_folder, target_folder)
         print("Move completed!")
         shutil.rmtree("assets/")
@@ -71,7 +71,7 @@ def main(version, app_name):
             target_folder = "gamedata"
             shutil.move(base_apk_folder, target_folder)
             print("Move completed!")
-            shutil.rmtree("assets/")
+            shutil.rmtree("temp/assets/")
             print("Deletion completed!")
 
         os.remove(extract_base)

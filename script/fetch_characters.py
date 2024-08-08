@@ -1,7 +1,11 @@
 import json
 
+input_file_path = "temp/gamedata/characters.json"
+output_file_path = "temp/output/characters_output.json"
+
+
 # Read the file content into a variable
-with open("gamedata/characters.json") as file:
+with open(input_file_path) as file:
     json_data = json.load(file)
 
 # Extract the board names
@@ -44,5 +48,5 @@ for name in names:
     extracted_data.append({"id": item_id.replace(" ", ""), "outfits": outfits})
 
 # Save the extracted data to a JSON file
-with open("characters_output.json", "w") as file:
+with open(output_file_path, "w") as file:
     json.dump(extracted_data, file, indent=2)

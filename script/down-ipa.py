@@ -129,7 +129,7 @@ def download(session, version):
             download_response = requests.get(download_url, headers=headers)
 
             if download_response.status_code == 200:
-                with open(f"{appName}-{version}.ipa", "wb") as file:
+                with open(f"temp/{appName}-{version}.ipa", "wb") as file:
                     file.write(download_response.content)
                 print("File downloaded successfully.")
             else:

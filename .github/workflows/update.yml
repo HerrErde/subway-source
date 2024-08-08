@@ -22,7 +22,9 @@ jobs:
           echo version=$(curl -s "https://gplayapi.cashlessconsumer.in/api/apps/$packageId" | jq -r '.version' | tr '.' '-') >> $GITHUB_OUTPUT
 
       - name: Create Folder
-        run: mkdir upload
+        run: |
+          mkdir temp/upload
+          mkdir temp/output
 
       - name: Cache dependencies
         uses: actions/setup-python@v5.1.0
@@ -67,8 +69,8 @@ jobs:
       - name: Upload Data
         uses: softprops/action-gh-release@v2
         with:
-          body_path: 'update.txt'
+          body_path: 'temp/update.txt'
           tag_name: ${{steps.var.outputs.version}}
-          files: upload/*
+          files: temp/upload/*
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}

@@ -1,9 +1,9 @@
 import json
 import re
 
-json_input = "boards_output.json"
-json_input_links = "upload/boards_links.json"
-json_output = "upload/boards_data.json"
+json_input = "temp/output/boards_output.json"
+json_input_links = "temp/upload/boards_links.json"
+json_output = "temp/upload/boards_data.json"
 
 ignore_strings = ["nflpa", "sakar"]
 

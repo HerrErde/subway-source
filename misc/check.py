@@ -11,14 +11,15 @@ characters = "characters_data.json"
 hoverboards = "boards_data.json"
 playerprofile = "playerprofile_data.json"
 
-output_file = "update.txt"
+output_file = "temp/update.txt"
 
 
 def download_latest_files():
     base_url = f"https://github.com/{org_name}/{repo_name}/releases/latest/download/"
+    # base_url = f"https://github.com/{org_name}/{repo_name}/releases/download/3-32-0/" # specific version
     for file in files:
         url = f"{base_url}{file}"
-        download_file(url, file.replace(".json", "_old.json"))
+        download_file(url, "temp/" + file.replace(".json", "_old.json"))
 
 
 def download_file(url, filename):
@@ -35,10 +36,10 @@ def download_file(url, filename):
 def compare_characters(file, output_file):
     old_file = file.replace(".json", "_old.json")
 
-    with open(old_file, "r") as f:
+    with open(f"temp/{old_file}", "r") as f:
         old_data = json.load(f)
 
-    with open("upload/" + file, "r") as f:
+    with open(f"temp/upload/{file}", "r") as f:
         new_data = json.load(f)
 
     old_ids = {entry["id"] for entry in old_data}
@@ -72,10 +73,10 @@ def compare_characters(file, output_file):
 def compare_boards(file, output_file):
     old_file = file.replace(".json", "_old.json")
 
-    with open(old_file, "r") as f:
+    with open(f"temp/{old_file}", "r") as f:
         old_data = json.load(f)
 
-    with open("upload/" + file, "r") as f:
+    with open(f"temp/upload/{file}", "r") as f:
         new_data = json.load(f)
 
     old_ids = {entry["id"] for entry in old_data}
@@ -117,10 +118,10 @@ def compare_boards(file, output_file):
 def compare_profile(file, output_file):
     old_file = file.replace(".json", "_old.json")
 
-    with open(old_file, "r") as f:
+    with open(f"temp/{old_file}", "r") as f:
         old_data = json.load(f)
 
-    with open("upload/" + file, "r") as f:
+    with open(f"temp/upload/{file}", "r") as f:
         new_data = json.load(f)
 
     added_portrait = set(new_data["profilePortraits"]) - set(

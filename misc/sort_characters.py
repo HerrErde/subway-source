@@ -2,9 +2,9 @@ import json
 import unicodedata
 import re
 
-json_input = "characters_output.json"
-json_input_links = "upload/characters_links.json"
-json_output = "upload/characters_data.json"
+json_input = "temp/output/characters_output.json"
+json_input_links = "temp/upload/characters_links.json"
+json_output = "temp/upload/characters_data.json"
 
 ignore_strings = ["nflpa"]
 

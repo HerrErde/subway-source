@@ -94,14 +94,14 @@ async def main():
                 fetch_data(
                     session,
                     "https://subwaysurf.fandom.com/wiki/Characters",
-                    "upload/characters_links.json",
+                    "temp/upload/characters_links.json",
                 )
             )
             tasks.append(
                 fetch_data(
                     session,
                     "https://subwaysurf.fandom.com/wiki/Hoverboard",
-                    "upload/boards_links.json",
+                    "temp/upload/boards_links.json",
                 )
             )
 

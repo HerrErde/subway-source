@@ -22,7 +22,7 @@ def find_extraction_folder(zip_file):
 
 def main(version, app_name):
     # Specify the path to the .apk file
-    ipa_file = f"{app_name}-{version}.ipa"
+    ipa_file = f"temp/{app_name}-{version}.ipa"
     print(ipa_file)
 
     # Check if the specified file exists and rename it to .zip
@@ -41,7 +41,7 @@ def main(version, app_name):
         extract_zip(zip_file, extract_folder)
         print("Extraction completed!")
 
-        target_folder = "gamedata"
+        target_folder = "temp/gamedata"
         shutil.move(extract_folder, target_folder)
         print("Move completed!")
         shutil.rmtree("Payload/")
