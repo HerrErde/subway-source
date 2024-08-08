@@ -6,10 +6,11 @@ import shutil
 import time
 import glob
 import argparse
-import browser_cookie3
+
 
 
 def get_session():
+    import browser_cookie3
     # Retrieve Firefox cookies
     cookies = browser_cookie3.firefox()
 
@@ -38,21 +39,27 @@ def version():
     return data.get("version", "").replace(".", "-")
 
 
-rm_file = [
-    "*.apk",
-    "*.ipa",
-    "subwaysurfers-*.zip",
-    "*_output.json",
-    "*_data_old.json",
-    "update.txt",
-]
+def get_rm(nodownload):
+    rm_file = [
+        "*.apk",
+        "subwaysurfers-*.zip",
+        "*_output.json",
+        "*_data_old.json",
+        "update.txt",
+    ]
 
-rm_dir = ["upload", "gamedata"]
+    rm_dir = ["upload", "gamedata"]
+
+    if not nodownload:
+        ipa_file = "*.ipa"
+        rm_file.insert(0, ipa_file)
+
+    return rm_file, rm_dir
 
 
-def get_scripts(type, version, session):
-    return [
-        [f"script/down-{type}.py", version, session[0]],
+def get_scripts(type, version, session, nodownload):
+    script_list = [
+        ["script/fetch_links.py"],
         [f"misc/unpack-{type}.py", version],
         ["script/fetch_characters.py"],
         ["script/fetch_boards.py"],
@@ -66,12 +73,17 @@ def get_scripts(type, version, session):
         ["misc/check.py"],
     ]
 
+    if not nodownload:
+        download_script = [f"script/down-{type}.py", version, session[0]]
+        script_list.insert(0, download_script)
 
-delay = 5
+    return script_list
 
 
-def cleanup():
+def cleanup(nodownload):
     print("Starting cleanup")
+    rm_file, rm_dir = get_rm(nodownload)
+
     try:
         for pattern in rm_file:
             for file in glob.glob(pattern):
@@ -87,9 +99,14 @@ def cleanup():
         raise
 
 
-def run_scripts(type, version):
-    session = get_session()
-    scripts = get_scripts(type, version, session)
+def run_scripts(type, version, nodownload):
+    delay = 5
+    session = ""
+    if nodownload:
+        pass
+    else:
+        session = get_session()
+    scripts = get_scripts(type, version, session, nodownload)
     try:
         print(f"Choosing type {type}")
         print(f"Choosing version {version}")
@@ -137,6 +154,12 @@ def main():
         default="ipa",
         help="Choose between type apk and ipa",
     )
+    parser.add_argument(
+        "-nd",
+        "--nodownload",
+        action="store_true",
+        help="Run scripts without downloading game file (Game has to be downloaded beforehand)",
+    )
 
     args = parser.parse_args()
 
@@ -148,13 +171,13 @@ def main():
 
     try:
         if args.cleanup:
-            cleanup()
+            cleanup(args.nodownload)
         elif args.extract:
-            cleanup()
-            extract(args.type, args.version)
+            cleanup(args.nodownload)
+            extract(args.type, args.version, args.nodownload)
         else:
-            cleanup()
-            run_scripts(args.type, args.version)
+            cleanup(args.nodownload)
+            run_scripts(args.type, args.version, args.nodownload)
     except Exception as e:
         print("Error:", e)
         raise

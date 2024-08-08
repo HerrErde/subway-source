@@ -24,9 +24,11 @@ for name in names:
     outfits = []
     if "outfits" in data and len(data["outfits"]) > 0:
         outfits = [
-            {"id": outfit["id"], "variation": {"name": outfit["name"]}}
-            if "name" in outfit
-            else {"id": outfit["id"]}
+            (
+                {"id": outfit["id"], "variation": {"name": outfit["name"]}}
+                if "name" in outfit
+                else {"id": outfit["id"]}
+            )
             for outfit in data["outfits"]
         ]
     else:

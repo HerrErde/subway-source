@@ -1,5 +1,6 @@
 import json
 import unicodedata
+import re
 
 json_input = "characters_output.json"
 json_input_links = "upload/characters_links.json"
@@ -30,23 +31,18 @@ def extract(json_input_links):
     replace_data = read_json("replace.json")
 
     link_names = []
-    global_replace = replace_data.get("Global", {})
-    character_replace = replace_data.get("Characters", {})
+    item_replace = replace_data.get("Hoverboards", {})
 
     for item in link_data:
         if item.get("available", True):
             name = item.get("name", "")
 
-            # Normalize the name by replacing accented characters
-            name = normalize_string(name)
+            # Replace based on item_replace rules
+            for search_item, replacement in item_replace.items():
+                name = name.replace(search_item, replacement)
 
-            for board, replacement in character_replace.items():
-                name = name.replace(normalize_string(board), replacement)
+            name = re.sub(r"[^a-zA-Z0-9]", "", name)
 
-            for key, value in global_replace.items():
-                name = name.replace(normalize_string(key), value)
-
-            name = name.lower()
             link_names.append(name)
 
     return link_names

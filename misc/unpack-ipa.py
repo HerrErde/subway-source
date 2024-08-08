@@ -46,6 +46,7 @@ def main(version, app_name):
         print("Move completed!")
         shutil.rmtree("Payload/")
         print("Deletion completed!")
+        os.rename(zip_file, ipa_file)
 
     else:
         print(

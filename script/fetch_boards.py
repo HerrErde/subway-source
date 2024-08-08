@@ -22,9 +22,11 @@ for name in names:
 
     # Extract upgrades if available, otherwise set as null
     upgrades = [
-        {"id": upgrade.get("id").replace(" ", "")}
-        if "name" not in upgrade and " " not in upgrade.get("id")
-        else {"id": upgrade.get("id").replace(" ", "")}
+        (
+            {"id": upgrade.get("id").replace(" ", "")}
+            if "name" not in upgrade and " " not in upgrade.get("id")
+            else {"id": upgrade.get("id").replace(" ", "")}
+        )
         for upgrade in data.get("upgrades", [])
     ] or None
 

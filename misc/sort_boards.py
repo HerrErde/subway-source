@@ -18,7 +18,6 @@ def extract(json_input_links):
     replace_data = read_json("replace.json")
 
     link_names = []
-    global_replace = replace_data.get("Global", {})
     item_replace = replace_data.get("Hoverboards", {})
 
     for item in link_data:
@@ -28,8 +27,7 @@ def extract(json_input_links):
             for item, replacement in item_replace.items():
                 name = name.replace(item, replacement)
 
-            for key, value in global_replace.items():
-                name = name.replace(key, value)
+            name = re.sub(r"[^a-zA-Z0-9]", "", name)
 
             name = re.sub(r"\bhoverboard\b", "default", name.lower())
             link_names.append(name)

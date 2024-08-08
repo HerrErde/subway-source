@@ -1,4 +1,4 @@
-#import browser_cookie3
+# import browser_cookie3
 import sys
 import re
 import requests
@@ -32,7 +32,9 @@ version_url = (
     f"https://armconverter.com/decryptedappstore/versions/{appid}/{appver}?country=us"
 )
 prepare_url = f"https://armconverter.com/decryptedappstore/download/{appid}/{apppackage}/{appver}/prepare"
-download_base_url = f"https://armconverter.com/decryptedappstore/download/{appid}/{apppackage}/{appver}"
+download_base_url = (
+    f"https://armconverter.com/decryptedappstore/download/{appid}/{apppackage}/{appver}"
+)
 info_url = f"https://armconverter.com/decryptedappstore/download/{appid}/{apppackage}/{appver}/info"
 """
 def get_session():
@@ -56,6 +58,7 @@ def get_session():
 
     return session_cookie_values
 """
+
 
 def user(session):
     # Set up the URLs and headers

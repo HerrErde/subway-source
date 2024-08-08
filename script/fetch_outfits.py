@@ -36,9 +36,11 @@ def fetch_outfits(session, entry):
         return {"name": entry["name"], "outfits": None}
 
     outfit_names = [
-        li.find("span", class_="toctext").get_text()
-        if li.find("span", class_="toctext")
-        else ""
+        (
+            li.find("span", class_="toctext").get_text()
+            if li.find("span", class_="toctext")
+            else ""
+        )
         for li in appearance_section.find_all_next("li")
     ]
 
