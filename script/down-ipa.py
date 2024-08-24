@@ -1,32 +1,25 @@
-# import browser_cookie3
 import sys
 import re
 import requests
 
+appid = 512939461
+apppackage = "com.kiloo.subwaysurfers"
+user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
+appName = "subwaysurfers"
+
 
 if len(sys.argv) < 2:
+    print("Error: No version set. Please use the format 'X-Y-Z' (e.g., '3-12-2').")
+    sys.exit(1)
+
+version = sys.argv[1]
+if not re.match(r"^\d{1,2}-\d{1,2}-\d{1,2}$", version):
     print(
         "Error: Invalid version format. Please use the format 'X-Y-Z' (e.g., '3-12-2')."
     )
     sys.exit(1)
 
-version = sys.argv[1]
-session = sys.argv[2]
-
-if not re.match(r"^\d{1,2}-\d{1,2}-\d{1,2}$", version):
-    print(
-        "Error: Invalid version format. Please use the format 'X-Y-Z' (e.g., '3-12-2')."
-    )
-    exit(1)
-
 appver = version.replace("-", ".")
-
-appid = 512939461
-apppackage = "com.kiloo.subwaysurfers"
-user_agent = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0"
-)
-appName = "subwaysurfers"
 
 version_url = (
     f"https://armconverter.com/decryptedappstore/versions/{appid}/{appver}?country=us"
@@ -36,43 +29,26 @@ download_base_url = (
     f"https://armconverter.com/decryptedappstore/download/{appid}/{apppackage}/{appver}"
 )
 info_url = f"https://armconverter.com/decryptedappstore/download/{appid}/{apppackage}/{appver}/info"
-"""
-def get_session():
-    # Retrieve Firefox cookies
-    cookies = browser_cookie3.firefox()
 
-    # Filter for cookies from "armconverter.com"
-    armconverter_cookies = [
-        cookie for cookie in cookies if "armconverter.com" in cookie.domain
-    ]
 
-    # Filter for session cookies
-    session_cookies = [cookie for cookie in armconverter_cookies if not cookie.expires]
-
-    # Return the session cookies values
-    session_cookie_values = [cookie.value for cookie in session_cookies]
-
-    # Print the session cookies values
-    for value in session_cookie_values:
-        print(value)
-
-    return session_cookie_values
-"""
+session = sys.argv[2]
 
 
 def user(session):
     # Set up the URLs and headers
     url = f"https://armconverter.com/decryptedappstore/user/info"
 
-    headers = {"Cookie": f"session={session}"}
-
+    headers = {
+        "User-Agent": user_agent,
+        "Cookie": f"session={session}",
+    }
     # Initial POST request to check state and versions
     response = requests.post(url, headers=headers)
     data = response.json()
 
     # Check if the versions list is present and get the last version
-    quota = data.get("quota", [])
-    lastLogin = data.get("lastLogin", [])
+    # quota = data.get("quota", [])
+    # lastLogin = data.get("lastLogin", [])
 
 
 def check_version(session, version):
@@ -105,7 +81,6 @@ def check_version(session, version):
 
 
 def download(session, version):
-
     headers = {
         "User-Agent": user_agent,
         "Referer": "https://armconverter.com/decryptedappstore/us/Subway",
@@ -114,7 +89,7 @@ def download(session, version):
 
     try:
         # POST request to prepare download
-        response = requests.post(prepare_url, headers=headers)
+        response = requests.post(f"{download_base_url}/prepare", headers=headers)
         data = response.json()
 
         if data.get("state") == "ready":
@@ -131,7 +106,7 @@ def download(session, version):
             if download_response.status_code == 200:
                 with open(f"temp/{appName}-{version}.ipa", "wb") as file:
                     file.write(download_response.content)
-                print("File downloaded successfully.")
+                print("Download successful.")
             else:
                 print("Failed to download the file.")
         else:
@@ -143,8 +118,6 @@ def download(session, version):
 
 
 def main():
-    # session = get_session()
-    # session = session[0]
 
     if session:
         check_version(session, version)
