@@ -1,26 +1,29 @@
-import subprocess
-import requests
+import argparse
+import glob
 import os
 import re
 import shutil
+import subprocess
 import time
-import glob
-import argparse
+import requests
+
+
+def setup(extract):
+    if extract:
+        os.makedirs("temp", exist_ok=True)
+    else:
+        os.makedirs("temp/output", exist_ok=True)
+        os.makedirs("temp/upload", exist_ok=True)
 
 
 def get_session():
     import browser_cookie3
 
     # Retrieve Firefox cookies
-    cookies = browser_cookie3.firefox()
-
-    # Filter for cookies from "armconverter.com"
-    armconverter_cookies = [
-        cookie for cookie in cookies if "armconverter.com" in cookie.domain
-    ]
+    cookies = browser_cookie3.firefox(domain_name="armconverter.com")
 
     # Filter for session cookies
-    session_cookies = [cookie for cookie in armconverter_cookies if not cookie.expires]
+    session_cookies = [cookie for cookie in cookies if not cookie.expires]
 
     # Return the session cookies values
     session_cookie_values = [cookie.value for cookie in session_cookies]
@@ -29,7 +32,11 @@ def get_session():
     for value in session_cookie_values:
         print(value)
 
-    return session_cookie_values
+    # Return the first session cookie value (or handle differently if needed)
+    if session_cookie_values:
+        return session_cookie_values[0]
+    else:
+        return None  # or handle no session cookies found case
 
 
 def version():
@@ -60,8 +67,10 @@ def get_rm(nodownload):
 
 
 def get_scripts(type, version, session, nodownload):
-    script_list = [
-        ["script/fetch_links.py"],
+    if type == "apk":
+        session = ""
+    return [
+        [f"script/down-{type}.py", version, session],
         [f"misc/unpack-{type}.py", version],
         ["script/fetch_characters.py"],
         ["script/fetch_boards.py"],
@@ -111,8 +120,7 @@ def run_scripts(type, version, nodownload, delay):
     try:
         print(f"Choosing typ: {type}")
         print(f"Choosing version: {version}")
-        os.makedirs("temp/output", exist_ok=True)
-        os.makedirs("temp/upload", exist_ok=True)
+
         for script in scripts:
             print(f"Running {script[0]}...")
             subprocess.run(["python"] + script, check=True)
@@ -125,9 +133,15 @@ def run_scripts(type, version, nodownload, delay):
 
 def extract(type, version):
     try:
-        print(f"Choosing type: {type}")
+        if type == "apk":
+            session = ""
+        else:
+            session = get_session()
+        print(f"Choosing type {type}")
         print(f"Downloading {version}...")
-        subprocess.run(["python", f"script/down-{type}.py", version], check=True)
+        subprocess.run(
+            ["python", f"script/down-{type}.py", version, session], check=True
+        )
         print(f"Extracting {type}...")
         subprocess.run(["python", f"misc/unpack-{type}.py", version], check=True)
     except KeyboardInterrupt:
@@ -183,9 +197,11 @@ def main():
             cleanup(args.nodownload)
         elif args.extract:
             cleanup(args.nodownload)
-            extract(args.type, args.version, args.nodownload, args.delay)
+            setup(True)
+            extract(args.type, args.version)
         else:
             cleanup(args.nodownload)
+            setup(False)
             run_scripts(args.type, args.version, args.nodownload, args.delay)
     except Exception as e:
         print("Error:", e)
