@@ -51,7 +51,7 @@ def compare_characters(file, output_file):
         return
 
     with open(output_file, "a") as f:
-        f.write("- Added Characters: " + ", ".join(added_ids) + "\n")
+        f.write("- Added Characters " + ", ".join(added_ids) + "\n")
 
         for entry in new_data:
             id_val = entry["id"]
@@ -66,7 +66,7 @@ def compare_characters(file, output_file):
                 added_outfits = new_outfits - old_outfits
                 if added_outfits:
                     f.write(
-                        f"- Added Outfits for {entry['id']}: {', '.join(added_outfits)}\n"
+                        f"- Added Outfit {', '.join(added_outfits)} ({entry['id']})\n"
                     )
 
 
@@ -88,7 +88,7 @@ def compare_boards(file, output_file):
         return
 
     with open(output_file, "a") as f:
-        f.write("- Added Boards: " + ", ".join(added_ids) + "\n")
+        f.write("- Added Boards " + ", ".join(added_ids) + "\n")
 
         for entry in new_data:
             id_val = entry["id"]

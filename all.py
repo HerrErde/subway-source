@@ -72,6 +72,9 @@ def get_scripts(type, version, session, nodownload):
     return [
         [f"script/down-{type}.py", version, session],
         [f"misc/unpack-{type}.py", version],
+        ["script/fetch_links.py"],
+        ["script/fetch_profile.py"],
+        ["script/fetch_outfits.py"],
         ["script/fetch_characters.py"],
         ["script/fetch_boards.py"],
         ["script/playerprofile.py"],

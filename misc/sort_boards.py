@@ -47,7 +47,7 @@ def append_data(item_id, count, ordered_data, item):
         {
             "number": count,
             "id": item["id"],
-            "upgrades": item.get("upgrades", ""),
+            "upgrades": item.get("upgrades", None),
         }
     )
 
@@ -55,7 +55,6 @@ def append_data(item_id, count, ordered_data, item):
 def sort_json(json_input, link_names, json_output):
     data = read_json(json_input)
     ordered_data = []
-    skipped_names = []
 
     for name in link_names:
         for item in data:

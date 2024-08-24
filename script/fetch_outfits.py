@@ -2,6 +2,17 @@ import json
 import sys
 import requests
 from bs4 import BeautifulSoup
+import unicodedata
+
+
+def normalize_string(input_string):
+    # Normalize the string by replacing accented characters with their base counterparts
+    normalized_string = (
+        unicodedata.normalize("NFKD", input_string)
+        .encode("ASCII", "ignore")
+        .decode("utf-8")
+    )
+    return normalized_string
 
 input_file_path = "temp/upload/characters_links.json"
 output_file_path = "temp/upload/characters_outfit.json"
@@ -13,11 +24,12 @@ def fetch_outfits(session, entry):
         return None
 
     name = entry["name"].replace(" ", "_")
+    name = normalize_string(name)
     url = f"https://subwaysurf.fandom.com/wiki/{name}"
     print(f"'{entry['name']}': {url}")
 
     try:
-        response = session.get(url)
+        response = session.get(url, allow_redirects=True)
         response.raise_for_status()
         content = response.content
         soup = BeautifulSoup(content, "html.parser")

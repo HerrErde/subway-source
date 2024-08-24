@@ -41,7 +41,7 @@ jobs:
           python script/fetch_profile.py
           python script/fetch_outfits.py
 
-      - name: Get latest Apk
+      - name: Get latest Gamefile
         run: python script/down-ipa.py ${{steps.var.outputs.version}} ${{ secrets.SESSION }}
 
       - name: Unpack apk
