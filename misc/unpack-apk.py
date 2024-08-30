@@ -31,15 +31,15 @@ def find_extraction_folder(zip_file):
 def main(version, app_name):
     # Specify the path to the .apk file
     apk_file = f"temp/{app_name}-{version}.apk"
-    print(apk_file)
+    # print(apk_file)
 
     # Check if the specified file exists and rename it to .zip
-    zip_file = f"temp/{os.path.splitext(apk_file)[0]}.zip"
+    zip_file = f"{os.path.splitext(apk_file)[0]}.zip"
     try:
         os.rename(apk_file, zip_file)
     except FileNotFoundError:
         print(f"Error: The specified .apk file '{apk_file}' does not exist.")
-        exit(1)
+        sys.exit(1)
 
     # Check for "assets/tower/gamedata" folder or "base.apk" file
     extract_folder = find_extraction_folder(zip_file)
@@ -55,6 +55,7 @@ def main(version, app_name):
         print("Move completed!")
         shutil.rmtree("assets/")
         print("Deletion completed!")
+        os.rename(zip_file, apk_file)
 
     elif extract_base is not None:
         print("Extracting base.apk...")
@@ -85,7 +86,7 @@ def main(version, app_name):
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python unpack.py <version>")
-        exit(1)
+        sys.exit(1)
 
     version = sys.argv[1]
     app_name = "subwaysurfers"

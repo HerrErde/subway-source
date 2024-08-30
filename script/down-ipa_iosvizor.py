@@ -17,7 +17,7 @@ if not re.match(r"^\d{1,2}-\d{1,2}-\d{1,2}$", appVer):
     print(
         "Error: Invalid version format. Please use the format 'X-Y-Z' (e.g., '3-12-2')."
     )
-    exit(1)
+    sys.exit(1)
 
 
 appVer = appVer.replace("-", ".")

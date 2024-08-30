@@ -12,12 +12,14 @@ if len(sys.argv) < 2:
 
 appVer = sys.argv[1]
 
-
 if not re.match(r"^\d{1,2}-\d{1,2}-\d{1,2}$", appVer):
     print(
         "Error: Invalid version format. Please use the format 'X-Y-Z' (e.g., '3-12-2')."
     )
-    exit(1)
+    sys.exit(1)
+
+dlprogress = sys.argv[2]
+
 
 userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
 orgName = "sybo-games"
@@ -101,6 +103,35 @@ if not url3:
 apk_url = f"https://www.apkmirror.com{url3}"
 print(apk_url, file=sys.stderr)
 
-response = requests.get(apk_url, headers={"User-Agent": userAgent})
-with open(f"temp/{appName}-{appVer}.apk", "wb") as f:
-    f.write(response.content)
+download_response = requests.get(apk_url, headers={"User-Agent": userAgent})
+
+if download_response.status_code == 200:
+    # Get total file size from headers
+    total_size = int(download_response.headers.get("content-length", 0))
+
+    # Open file for writing in binary mode
+    with open(f"temp/{appName}-{appVer}.apk", "wb") as file:
+        if dlprogress is True:
+
+            # Initialize tqdm progress bar
+            progress_bar = tqdm(
+                total=total_size,
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+                desc="Downloading",
+            )
+
+            # Write file in chunks and update progress bar
+            for chunk in download_response.iter_content(chunk_size=8192):
+                if chunk:  # Filter out keep-alive new chunks
+                    file.write(chunk)
+                    progress_bar.update(len(chunk))
+
+            progress_bar.close()
+        else:
+            file.write(download_response.content)
+
+    print("Download successful.")
+else:
+    print("Failed to download the file.")

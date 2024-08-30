@@ -5,25 +5,30 @@ import sys
 import zipfile
 
 
-def extract_zip(zip_file, extract_folder):
+def extract_zip(zip_file, extract_folder, output_folder):
     with zipfile.ZipFile(zip_file, "r") as zf:
         for item in zf.namelist():
+            # If the item is within the extract_folder, process it
             if item.startswith(extract_folder):
-                zf.extract(item, "")
+                # Get the relative path, starting after the extract_folder
+                relative_path = os.path.relpath(item, extract_folder)
 
+                # Build the target path in the output_folder
+                target_path = os.path.join(output_folder, relative_path)
 
-def find_extraction_folder(zip_file):
-    with zipfile.ZipFile(zip_file, "r") as zf:
-        for item in zf.namelist():
-            if item.startswith("Payload/SubwaySurf.app/Data/Raw/tower/gamedata"):
-                return "Payload/SubwaySurf.app/Data/Raw/tower/gamedata"
-        return None
+                if item.endswith("/"):
+                    # If the item is a directory, create it
+                    os.makedirs(target_path, exist_ok=True)
+                else:
+                    # If the item is a file, extract it
+                    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                    with zf.open(item) as source, open(target_path, "wb") as target:
+                        shutil.copyfileobj(source, target)
 
 
 def main(version, app_name):
-    # Specify the path to the .apk file
+    # Specify the path to the .ipa file
     ipa_file = f"temp/{app_name}-{version}.ipa"
-    print(ipa_file)
 
     # Check if the specified file exists and rename it to .zip
     zip_file = f"{os.path.splitext(ipa_file)[0]}.zip"
@@ -31,33 +36,20 @@ def main(version, app_name):
         os.rename(ipa_file, zip_file)
     except FileNotFoundError:
         print(f"Error: The specified .ipa file '{ipa_file}' does not exist.")
-        exit(1)
+        sys.exit(1)
+    extract_folder = "Payload/SubwaySurf.app/Data/Raw/tower/gamedata"
+    target_folder = "temp/gamedata"
 
-    # Check for "assets/tower/gamedata" folder or "base.apk" file
-    extract_folder = find_extraction_folder(zip_file)
-
-    if extract_folder is not None:
-        print("Extracting assets/tower/gamedata folder...")
-        extract_zip(zip_file, extract_folder)
-        print("Extraction completed!")
-
-        target_folder = "temp/gamedata"
-        shutil.move(extract_folder, target_folder)
-        print("Move completed!")
-        shutil.rmtree("Payload/")
-        print("Deletion completed!")
-        os.rename(zip_file, ipa_file)
-
-    else:
-        print(
-            "Error: Neither 'assets/tower/gamedata' folder nor 'base.apk' file found."
-        )
+    print(f"Extracting {extract_folder} folder...")
+    extract_zip(zip_file, extract_folder, target_folder)
+    print("Extraction completed!")
+    os.rename(zip_file, ipa_file)
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python unpack.py <version>")
-        exit(1)
+        sys.exit(1)
 
     version = sys.argv[1]
     app_name = "subwaysurfers"

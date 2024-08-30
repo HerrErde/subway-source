@@ -31,18 +31,21 @@ def extract(json_input_links):
     replace_data = read_json("replace.json")
 
     link_names = []
-    item_replace = replace_data.get("Hoverboards", {})
+    item_replace = replace_data.get("Characters", {})
 
     for item in link_data:
         if item.get("available", True):
             name = item.get("name", "")
 
+            name = normalize_string(name)
+
             # Replace based on item_replace rules
             for search_item, replacement in item_replace.items():
                 name = name.replace(search_item, replacement)
 
-            name = re.sub(r"[^a-zA-Z0-9]", "", name)
+            name = re.sub(r"[ .\-&]", "", name)
 
+            name = name.lower()
             link_names.append(name)
 
     return link_names

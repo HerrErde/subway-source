@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+import sys
 
 org_name = "HerrErde"
 repo_name = "subway-source"
@@ -14,9 +15,13 @@ playerprofile = "playerprofile_data.json"
 output_file = "temp/update.txt"
 
 
-def download_latest_files():
-    base_url = f"https://github.com/{org_name}/{repo_name}/releases/latest/download/"
-    # base_url = f"https://github.com/{org_name}/{repo_name}/releases/download/3-32-0/" # specific version
+def download_latest_files(version):
+    if version:
+        base_url = f"https://github.com/{org_name}/{repo_name}/releases/download/{version}/"  # specific version
+    else:
+        base_url = (
+            f"https://github.com/{org_name}/{repo_name}/releases/latest/download/"
+        )
     for file in files:
         url = f"{base_url}{file}"
         download_file(url, "temp/" + file.replace(".json", "_old.json"))
@@ -145,7 +150,10 @@ def compare_profile(file, output_file):
 
 
 if __name__ == "__main__":
-    download_latest_files()
+    version = None
+    if len(sys.argv) < 1:
+        version = sys.argv[1]
+    download_latest_files(version)
     with open(output_file, "w") as file:
         compare_characters(characters, output_file)
         compare_boards(hoverboards, output_file)
