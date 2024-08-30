@@ -2,17 +2,7 @@ import json
 import sys
 import requests
 from bs4 import BeautifulSoup
-import unicodedata
 
-
-def normalize_string(input_string):
-    # Normalize the string by replacing accented characters with their base counterparts
-    normalized_string = (
-        unicodedata.normalize("NFKD", input_string)
-        .encode("ASCII", "ignore")
-        .decode("utf-8")
-    )
-    return normalized_string
 
 input_file_path = "temp/upload/characters_links.json"
 output_file_path = "temp/upload/characters_outfit.json"
@@ -24,7 +14,6 @@ def fetch_outfits(session, entry):
         return None
 
     name = entry["name"].replace(" ", "_")
-    name = normalize_string(name)
     url = f"https://subwaysurf.fandom.com/wiki/{name}"
     print(f"'{entry['name']}': {url}")
 
@@ -36,7 +25,7 @@ def fetch_outfits(session, entry):
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
         return {"name": entry["name"], "outfits": None}
-    except Exception as err:
+    except Exception as e:
         print(f"Error occurred: {err}")
         return {"name": entry["name"], "outfits": None}
 
@@ -95,11 +84,15 @@ def fetch_outfits(session, entry):
     return {"name": entry["name"], "outfits": outfits}
 
 
-def main(limit=None):
+def main(limit):
     with open(input_file_path, "r") as file:
         data = json.load(file)
 
     output = []
+
+    # Handle cases where limit is None or 0
+    if limit is None or limit == 0:
+        limit = len(data)
 
     try:
         with requests.Session() as session:
@@ -107,18 +100,18 @@ def main(limit=None):
                 outfits_data = fetch_outfits(session, entry)
                 if outfits_data is not None:
                     output.append(outfits_data)
+    except Exception as e:
+        print("Error:", e)
+
     except KeyboardInterrupt:
         print("\nKeyboard interrupt received. Finishing current processing.")
 
     with open(output_file_path, "w", encoding="utf-8") as file:
         json.dump(output, file, indent=2, ensure_ascii=False)
 
-    print("Exiting gracefully.")
-
 
 if __name__ == "__main__":
+    limit = None
     if len(sys.argv) > 1:
         limit = int(sys.argv[1])
-        main(limit)
-    else:
-        main()
+    main(limit)

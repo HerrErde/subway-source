@@ -18,13 +18,35 @@ def fetch_data(url):
         return None
 
 
+def get_id(h3_title):
+    response = requests.get(url)
+    response.raise_for_status()  # Check for request errors
+
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    # Find <h3> tags and check their <span> children
+    for h3_tag in soup.find_all("h3"):
+        span_tag = h3_tag.find("span")
+        if span_tag.get_text(strip=True) == h3_title:
+            # Find the next <div> tag after the <h3> tag
+            next_div = h3_tag.find_next_sibling("div")
+            if next_div:
+                # Return the 'id' attribute of the <div> tag if it exists
+                return next_div.get(
+                    "id", "The <div> tag does not have an id attribute."
+                )
+            else:
+                return "No <div> tag found after the <h3> tag."
+
+    return "No <h3> tag with the specified text found."
+
+
 def fetch_profile(html):
     try:
-        soup = BeautifulSoup(html, "html.parser")
-        gallery_div = soup.find("div", id="gallery-1")
+        gallery_id = get_id("Profile Portraits")
 
-        if not gallery_div:
-            raise ValueError("Gallery div with id 'gallery-1' not found")
+        soup = BeautifulSoup(html, "html.parser")
+        gallery_div = soup.find("div", id=gallery_id)
 
         items = gallery_div.find_all("div", class_="wikia-gallery-item")
         profiles = []
@@ -39,11 +61,14 @@ def fetch_profile(html):
                 lightbox_caption_div = item.find("div", class_="lightbox-caption")
                 if lightbox_caption_div:
                     anchor_tag = lightbox_caption_div.find("a")
-                    profile_name = (
-                        anchor_tag.get("title", "").strip() if anchor_tag else ""
-                    )
+                    profile_name = item.find(
+                        "div", class_="lightbox-caption"
+                    ).text.strip()
+                    profile_name = profile_name.split(" profile portrait")[0]
+                    profile_name = profile_name.split(" outfit")[0]
 
                 profiles.append({"name": profile_name, "img_url": img_src})
+                print("Profile Name:", profile_name)
 
         return profiles
 
@@ -54,11 +79,10 @@ def fetch_profile(html):
 
 def fetch_frame(html):
     try:
-        soup = BeautifulSoup(html, "html.parser")
-        gallery_div = soup.find("div", id="gallery-2")
+        gallery_id = get_id("Frames")
 
-        if not gallery_div:
-            raise ValueError("Gallery div with id 'gallery-2' not found")
+        soup = BeautifulSoup(html, "html.parser")
+        gallery_div = soup.find("div", id=gallery_id)
 
         items = gallery_div.find_all("div", class_="wikia-gallery-item")
         frames = []
@@ -69,10 +93,9 @@ def fetch_frame(html):
                 img_src = img_tag.get("data-src", "") or img_tag.get("src", "")
                 img_src = img_src.split(".png")[0] + ".png"
                 frame_name = item.find("div", class_="lightbox-caption").text.strip()
-                frame_name = frame_name.split(" (from ")[
-                    0
-                ]  # Remove " (from " and everything after it
+                frame_name = frame_name.split("frame (")[0].strip()
                 frames.append({"name": frame_name, "img_url": img_src})
+                print("Frame Name:", frame_name)
 
         return frames
 
@@ -84,8 +107,8 @@ def fetch_frame(html):
 def save_json(portraits, frames):
     data = {"Portraits": portraits, "Frames": frames}
 
-    with open(filename, "w") as f:
-        json.dump(data, f, indent=2)
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2,ensure_ascii=False)
 
 
 def main():
