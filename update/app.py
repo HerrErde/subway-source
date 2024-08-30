@@ -1,11 +1,12 @@
-import sys
-import os
-import requests
-import time
-import colorama
 import json
-from dotenv import load_dotenv
+import os
+import sys
+import time
+
+import colorama
+import requests
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 
 # Colors for terminal output
 LOG = {

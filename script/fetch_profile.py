@@ -1,6 +1,7 @@
+import json
+
 import requests
 from bs4 import BeautifulSoup
-import json
 
 url = "https://subwaysurf.fandom.com/wiki/Player_Profile"
 
@@ -60,7 +61,6 @@ def fetch_profile(html):
                 # Fetch the title from the anchor tag within the lightbox-caption div
                 lightbox_caption_div = item.find("div", class_="lightbox-caption")
                 if lightbox_caption_div:
-                    anchor_tag = lightbox_caption_div.find("a")
                     profile_name = item.find(
                         "div", class_="lightbox-caption"
                     ).text.strip()
@@ -108,7 +108,7 @@ def save_json(portraits, frames):
     data = {"Portraits": portraits, "Frames": frames}
 
     with open(filename, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2,ensure_ascii=False)
+        json.dump(data, f, indent=2, ensure_ascii=False)
 
 
 def main():

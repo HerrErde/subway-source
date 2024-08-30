@@ -1,6 +1,6 @@
 import json
-import unicodedata
 import re
+import unicodedata
 
 json_input = "temp/output/characters_output.json"
 json_input_links = "temp/upload/characters_links.json"

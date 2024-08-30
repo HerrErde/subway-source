@@ -1,7 +1,8 @@
-import os
 import json
-import requests
+import os
 import sys
+
+import requests
 
 org_name = "HerrErde"
 repo_name = "subway-source"
@@ -17,7 +18,10 @@ output_file = "temp/update.txt"
 
 def download_latest_files(version):
     if version:
-        base_url = f"https://github.com/{org_name}/{repo_name}/releases/download/{version}/"  # specific version
+        # specific version
+        base_url = (
+            f"https://github.com/{org_name}/{repo_name}/releases/download/{version}/"
+        )
     else:
         base_url = (
             f"https://github.com/{org_name}/{repo_name}/releases/latest/download/"

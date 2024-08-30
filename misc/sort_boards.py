@@ -65,7 +65,6 @@ def sort_json(data, link_names, ignore_strings):
         item_dict[item_id] = item
 
     ordered_data = []
-    link_names_set = set(link_names)
 
     # Process link names first
     for name in link_names:

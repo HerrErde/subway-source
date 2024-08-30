@@ -1,7 +1,7 @@
-import sys
 import re
-import requests
+import sys
 
+import requests
 
 if len(sys.argv) < 2:
     print(

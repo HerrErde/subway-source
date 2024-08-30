@@ -1,6 +1,6 @@
 import json
-import re
 import os
+import re
 
 input_file = "temp/gamedata/collections.json"
 output_file = "temp/upload/collections_data.json"
@@ -23,7 +23,7 @@ def extract_items(collection_info):
 def get_time_slot(data):
     pattern = r"collection_season_S(\d+)"
     for key, value in data.get("seasonalCollections", {}).items():
-        if match := re.match(pattern, key):
+        if re.match(pattern, key):  # Directly use re.match() in the conditional
             return value.get("timeSlot", "")
     return ""
 

@@ -4,9 +4,10 @@ import os
 import re
 import shutil
 import subprocess
-import time
-import requests
 import sys
+import time
+
+import requests
 
 
 def setup(extract, onlydownload):
@@ -142,6 +143,7 @@ def cleanup(nodownload, nocleanup):
     except Exception as e:
         print(f"An error occurred during cleanup: {e}")
         sys.exit(1)
+
 
 def run_scripts(
     type,

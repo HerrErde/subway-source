@@ -1,5 +1,6 @@
-import sys
 import re
+import sys
+
 import requests
 from tqdm import tqdm
 
@@ -34,7 +35,7 @@ session = sys.argv[2]
 
 dlprogress = sys.argv[3]
 
-
+"""
 def user(session):
     # Set up the URLs and headers
     url = f"https://armconverter.com/decryptedappstore/user/info"
@@ -48,8 +49,9 @@ def user(session):
     data = response.json()
 
     # Check if the versions list is present and get the last version
-    # quota = data.get("quota", [])
-    # lastLogin = data.get("lastLogin", [])
+    quota = data.get("quota", [])
+    lastLogin = data.get("lastLogin", [])
+"""
 
 
 def check_version(version, session):

@@ -1,10 +1,11 @@
-import sys
-import json
-import aiohttp
-import aiofiles
 import asyncio
-from bs4 import BeautifulSoup
+import json
 import re
+import sys
+
+import aiofiles
+import aiohttp
+from bs4 import BeautifulSoup
 
 
 async def extract_data(html):
@@ -75,7 +76,8 @@ async def fetch_data(session, url, json_file):
     try:
         async with session.get(url) as response:
             response.raise_for_status()
-            html = await response.text(encoding="utf-8")  # Ensure correct encoding
+            # Ensure correct encoding
+            html = await response.text(encoding="utf-8")
             data = await extract_data(html)
     except aiohttp.ClientError as e:
         print(f"An error occurred fetching data from {url}: {e}")

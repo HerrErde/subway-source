@@ -1,7 +1,9 @@
-import sys
 import re
+import sys
+
 import requests
 from bs4 import BeautifulSoup
+from tqdm import tqdm
 
 if len(sys.argv) < 2:
     print(
