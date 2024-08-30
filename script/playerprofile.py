@@ -1,7 +1,7 @@
 import json
 
 input_file_path = "temp/gamedata/playerprofile.json"
-output_file_path = "temp/upload/playerprofile_data.json"
+output_file_path = "temp/output/playerprofile_output.json"
 
 
 # Read the file content into a variable
