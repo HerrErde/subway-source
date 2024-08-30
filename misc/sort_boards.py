@@ -4,6 +4,7 @@ import re
 json_input = "temp/output/boards_output.json"
 json_input_links = "temp/upload/boards_links.json"
 json_output = "temp/upload/boards_data.json"
+replace_file = "replace.json"
 
 ignore_strings = ["nflpa", "sakar"]
 
@@ -13,25 +14,25 @@ def read_json(file_path):
         return json.load(f)
 
 
-def extract(json_input_links):
-    link_data = read_json(json_input_links)
-    replace_data = read_json("replace.json")
-
-    link_names = []
+def extract(link_data, replace_data):
+    # Extract and process link names
     item_replace = replace_data.get("Hoverboards", {})
 
-    for item in link_data:
-        if item.get("available", True):
-            name = item.get("name", "")
+    def process_name(name):
+        # Process the name according to rules
+        for item, replacement in item_replace.items():
+            name = name.replace(item, replacement)
+        name = re.sub(r"[^a-zA-Z0-9]", "", name)
+        name = re.sub(r"\bhoverboard\b", "default", name.lower())
+        return name
 
-            for item, replacement in item_replace.items():
-                name = name.replace(item, replacement)
+    link_names = [
+        process_name(item.get("name", ""))
+        for item in link_data
+        if item.get("available", True)
+    ]
 
-            name = re.sub(r"[^a-zA-Z0-9]", "", name)
-
-            name = re.sub(r"\bhoverboard\b", "default", name.lower())
-            link_names.append(name)
-
+    # Replace birthdays in link names
     year = 2021
     for i in range(2, len(link_names) + 1):
         exponent = i + 7
@@ -47,49 +48,48 @@ def append_data(item_id, count, ordered_data, item):
         {
             "number": count,
             "id": item["id"],
-            "upgrades": item.get("upgrades", None),
+            "upgrades": item.get("upgrades"),
         }
     )
 
 
-def sort_json(json_input, link_names, json_output):
-    data = read_json(json_input)
+def sort_json(data, link_names, ignore_strings):
+    # Sort and write JSON data based on link names
+    item_dict = {}
+
+    # Preprocess items and create a dictionary for fast lookups
+    for item in data:
+        item_id = item["id"].lower()
+        for ignore in ignore_strings:
+            item_id = item_id.replace(ignore, "")
+        item_dict[item_id] = item
+
     ordered_data = []
+    link_names_set = set(link_names)
 
+    # Process link names first
     for name in link_names:
-        for item in data:
-            item_id = item["id"].lower()
+        item = item_dict.pop(name, None)
+        if item:
+            append_data(name, len(ordered_data) + 1, ordered_data, item)
 
-            # Apply replacements and transformations to the item_id
-            for ignore in ignore_strings:
-                item_id = item_id.replace(ignore, "")
-
-            # Check if the modified name matches the current item_id
-            if item_id == name:
-                # If there is a match, create a dictionary with relevant information
-                append_data(item_id, len(ordered_data) + 1, ordered_data, item)
-                # Break out of the inner loop
-                break
-
-    # Check for skipped item IDs in ordered_data
-    ordered_ids = {entry["id"] for entry in ordered_data}
-    all_ids = {item["id"] for item in data}
-    skipped_ids = all_ids - ordered_ids
-    if skipped_ids:
-        print("Skipped IDs:")
-        for skipped_id in skipped_ids:
-            print(skipped_id)
-            for item in data:
-                item_id = item["id"].lower()
-
-                # Check if the modified name matches the current item_id
-                if item_id == skipped_id:
-                    append_data(item_id, len(ordered_data) + 1, ordered_data, item)
+    # Process remaining items
+    for item_id, item in item_dict.items():
+        append_data(item_id, len(ordered_data) + 1, ordered_data, item)
 
     # Write the processed data to the output JSON file
     with open(json_output, "w") as f:
         json.dump(ordered_data, f, indent=2)
 
 
-link_names = extract(json_input_links)
-sort_json(json_input, link_names, json_output)
+def main():
+    link_data = read_json(json_input_links)
+    replace_data = read_json(replace_file)
+    json_data = read_json(json_input)
+
+    link_names = extract(link_data, replace_data)
+    sort_json(json_data, link_names, ignore_strings)
+
+
+if __name__ == "__main__":
+    main()

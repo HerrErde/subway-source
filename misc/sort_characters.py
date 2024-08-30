@@ -5,53 +5,46 @@ import re
 json_input = "temp/output/characters_output.json"
 json_input_links = "temp/upload/characters_links.json"
 json_output = "temp/upload/characters_data.json"
+replace_file = "replace.json"
 
 ignore_strings = ["nflpa"]
-
 other_strings = ["dak", "lamar", "tom", "odell", "patrick", "saquon"]
 
 
 def read_json(file_path):
+    # Read and return JSON data from the specified file
     with open(file_path, "r") as f:
         return json.load(f)
 
 
 def normalize_string(input_string):
-    # Normalize the string by replacing accented characters with their base counterparts
-    normalized_string = (
+    # Normalize strings by replacing accented characters with their base counterparts."""
+    return (
         unicodedata.normalize("NFKD", input_string)
         .encode("ASCII", "ignore")
         .decode("utf-8")
     )
-    return normalized_string
 
 
-def extract(json_input_links):
-    link_data = read_json(json_input_links)
-    replace_data = read_json("replace.json")
-
-    link_names = []
+def extract(link_data, replace_data):
+    # Extract and process link names from input data.
     item_replace = replace_data.get("Characters", {})
 
-    for item in link_data:
-        if item.get("available", True):
-            name = item.get("name", "")
+    def process_name(name):
+        name = normalize_string(name)
+        for search_item, replacement in item_replace.items():
+            name = name.replace(search_item, replacement)
+        return re.sub(r"[ .\-&]", "", name.lower())
 
-            name = normalize_string(name)
-
-            # Replace based on item_replace rules
-            for search_item, replacement in item_replace.items():
-                name = name.replace(search_item, replacement)
-
-            name = re.sub(r"[ .\-&]", "", name)
-
-            name = name.lower()
-            link_names.append(name)
-
-    return link_names
+    return [
+        process_name(item.get("name", ""))
+        for item in link_data
+        if item.get("available", True)
+    ]
 
 
 def append_data(item_id, count, ordered_data, item):
+    # Append processed item data to the ordered data list
     ordered_data.append(
         {
             "number": count,
@@ -61,43 +54,29 @@ def append_data(item_id, count, ordered_data, item):
     )
 
 
-def sort_json(json_input, link_names, json_output):
-    data = read_json(json_input)
+def sort_json(data, link_names):
+    # Sort and process JSON data based on link names."""
+    item_dict = {item["id"].lower(): item for item in data}
     ordered_data = []
 
     for name in link_names:
-        found_item = None
+        found_item = item_dict.get(name)
 
-        # Check for direct matches
-        for item in data:
-            item_id = item.get("id", "").lower()
-
-            if item_id == name:
-                found_item = item
-                break
-
-        if found_item is None:
-            for item in data:
-                item_id = item["id"].lower()
-
-                # Apply replacements and transformations to item_id
+        if not found_item:
+            for key, item in item_dict.items():
+                modified_key = key
                 for ignore in ignore_strings:
-                    item_id = item_id.replace(ignore, "")
+                    modified_key = modified_key.replace(ignore, "")
 
-                # Check if any other_strings are present in item_id
                 for other in other_strings:
-                    if other in item_id:
-                        item_id = item_id.split(other)[0] + other
-                        if item_id == name:
-                            found_item = item
-                            break
+                    if other in modified_key:
+                        modified_key = modified_key.split(other)[0] + other
+                        break
 
-                # If the lowercase variant of the name is contained anywhere in the ID data
-                if found_item is None and name in item_id:
+                if name == modified_key or name in modified_key:
                     found_item = item
                     break
 
-        # If a match is found, append relevant information to ordered_data
         if found_item:
             append_data(
                 found_item["id"].lower(),
@@ -105,26 +84,25 @@ def sort_json(json_input, link_names, json_output):
                 ordered_data,
                 found_item,
             )
+            item_dict.pop(found_item["id"].lower(), None)
 
-    # Check for skipped item IDs in ordered_data
-    ordered_ids = {entry["id"] for entry in ordered_data}
-    all_ids = {item["id"] for item in data}
-    skipped_ids = all_ids - ordered_ids
+    for item_id, item in item_dict.items():
+        append_data(item_id.lower(), len(ordered_data) + 1, ordered_data, item)
 
-    # Append skipped items to ordered_data
-    for item_id in skipped_ids:
-        for item in data:
-            if item["id"] == item_id:
-                append_data(
-                    item_id.lower(),
-                    len(ordered_data) + 1,
-                    ordered_data,
-                    item,
-                )
+    return ordered_data
+
+
+def main():
+    link_data = read_json(json_input_links)
+    replace_data = read_json(replace_file)
+    json_data = read_json(json_input)
+
+    extracted_names = extract(link_data, replace_data)
+    ordered_data = sort_json(json_data, extracted_names)
 
     with open(json_output, "w") as f:
         json.dump(ordered_data, f, indent=2)
 
 
-extracted_names = extract(json_input_links)
-sort_json(json_input, extracted_names, json_output)
+if __name__ == "__main__":
+    main()
