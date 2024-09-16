@@ -2,7 +2,6 @@ import re
 import sys
 
 import requests
-from tqdm import tqdm
 
 appid = 512939461
 apppackage = "com.kiloo.subwaysurfers"
@@ -33,7 +32,9 @@ info_url = f"https://armconverter.com/decryptedappstore/download/{appid}/{apppac
 
 session = sys.argv[2]
 
-dlprogress = sys.argv[3]
+dlprogress = False
+if len(sys.argv) >= 4:
+    dlprogress = sys.argv[3]
 
 """
 def user(session):
@@ -120,6 +121,8 @@ def download(version, session, dlprogress):
 
             with open(f"temp/{appName}-{version}.ipa", "wb") as file:
                 if dlprogress is True:
+                    from tqdm import tqdm
+
                     with tqdm(
                         total=total_size,
                         unit="B",

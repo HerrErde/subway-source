@@ -60,6 +60,7 @@ jobs:
         run: |
           python misc/sort_characters.py
           python misc/sort_boards.py
+          python misc/sort_profile.py
 
       - name: Check changes
         id: update

@@ -105,6 +105,7 @@ def get_scripts(
         ["script/mailbox.py"],
         ["misc/sort_characters.py"],
         ["misc/sort_boards.py"],
+        ["misc/sort_profile.py"],
         ["misc/check.py", checkversion],
     ]
 
@@ -182,9 +183,10 @@ def run_scripts(
             print(f"Running {script[0]}...")
             subprocess.run(["python"] + script, check=True)
             print(f"Finished running {script[0]}.\n")
-            time.sleep(delay)
+            if not len(scripts) < 1:
+                time.sleep(delay)
     except Exception as e:
-        print(f"Error occurred: {e}")
+        print(f"Error occurred while running script: {e}")
     except KeyboardInterrupt:
         print("Script execution interrupted by user.")
 
@@ -268,7 +270,7 @@ def main():
         "-s",
         "--session",
         type=str,
-        default=None,
+        default="",
         help="Set the iosGods session cookie",
     )
     parser.add_argument(
