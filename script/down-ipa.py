@@ -5,8 +5,9 @@ import requests
 
 appid = 512939461
 apppackage = "com.kiloo.subwaysurfers"
-user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
+userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
 appName = "subwaysurfers"
+
 
 if len(sys.argv) < 2:
     print("Error: No version set. Please use the format 'X-Y-Z' (e.g., '3-12-2').")
@@ -32,6 +33,12 @@ info_url = f"https://armconverter.com/decryptedappstore/download/{appid}/{apppac
 
 session = sys.argv[2]
 
+headers = {
+    "User-Agent": userAgent,
+    "Referer": "https://armconverter.com/decryptedappstore/us",
+    "Cookie": f"session={session}",
+}
+
 dlprogress = False
 if len(sys.argv) >= 4:
     dlprogress = sys.argv[3]
@@ -42,7 +49,7 @@ def user(session):
     url = f"https://armconverter.com/decryptedappstore/user/info"
 
     headers = {
-        "User-Agent": user_agent,
+        "User-Agent": userAgent,
         "Cookie": f"session={session}",
     }
     # Initial POST request to check state and versions
@@ -55,14 +62,25 @@ def user(session):
 """
 
 
+def check_session(session):
+    user_url = "https://armconverter.com/decryptedappstore/user/info"
+
+    try:
+        response = requests.get(user_url, headers=headers)
+        if response.status_code == 403:
+            raise requests.exceptions.HTTPError("Unauthorized access")
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as e:
+        print(f"Error: {e}, Status Code: {response.status_code}")
+        sys.exit(1)
+
+
 def check_version(version, session):
     try:
-        headers = {"Cookie": f"session={session}", "User-Agent": user_agent}
-
-        # Initial GET request to check state and versions
-        response = requests.get(version_url, headers=headers)
-
-        if response.status_code != 200:
+        try:
+            response = requests.get(version_url, headers=headers)
+            response.raise_for_status()
+        except requests.exceptions.HTTPError:
             print(f"Error fetching version information: {response.status_code}")
             return
 
@@ -89,11 +107,6 @@ def check_version(version, session):
 
 
 def download(version, session, dlprogress):
-    headers = {
-        "User-Agent": user_agent,
-        "Referer": "https://armconverter.com/decryptedappstore/us",
-        "Cookie": f"session={session}",
-    }
 
     try:
         # POST request to prepare download
@@ -151,6 +164,7 @@ def main():
     if not re.match(r"^\.[A-Za-z0-9._-]", session):
         raise Exception("Session cookie is not valid")
     if session:
+        check_session(session)
         check_version(version, session)
         download(version, session, dlprogress)
     else:

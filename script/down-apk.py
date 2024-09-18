@@ -26,11 +26,13 @@ dlprogress = sys.argv[2]
 userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
 orgName = "sybo-games"
 appName = "subwaysurfers"
-
+headers = {
+    "User-Agent": userAgent,
+}
 
 url = f"https://www.apkmirror.com/apk/{orgName}/{appName}/{appName}-{appVer}-release"
 
-response = requests.get(url, headers={"User-Agent": userAgent})
+response = requests.get(url, headers=headers)
 page = response.text
 
 if 'class="error404"' in page:
@@ -79,7 +81,7 @@ else:
 
 
 response = requests.get(
-    f"https://www.apkmirror.com{url1}", headers={"User-Agent": userAgent}
+    f"https://www.apkmirror.com{url1}", headers=headers
 )
 page2 = response.text
 url2 = BeautifulSoup(page2, "html.parser").select_one(
@@ -91,7 +93,7 @@ if not url2:
     sys.exit(1)
 
 response = requests.get(
-    f"https://www.apkmirror.com{url2}", headers={"User-Agent": userAgent}
+    f"https://www.apkmirror.com{url2}", headers=headers
 )
 page3 = response.text
 url3 = BeautifulSoup(page3, "html.parser").select_one(
@@ -105,9 +107,13 @@ if not url3:
 apk_url = f"https://www.apkmirror.com{url3}"
 print(apk_url, file=sys.stderr)
 
-download_response = requests.get(apk_url, headers={"User-Agent": userAgent})
+try:
+    download_response = requests.get(apk_url, headers=headers)
+    response.raise_for_status()
+except requests.exceptions.HTTPError:
+    print(f"Error fetching version information: {response.status_code}")
+    return
 
-if download_response.status_code == 200:
     # Get total file size from headers
     total_size = int(download_response.headers.get("content-length", 0))
 
