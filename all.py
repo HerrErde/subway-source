@@ -24,27 +24,36 @@ def get_session(devmode):
     try:
         import browser_cookie3
 
-        # Retrieve Firefox cookies
-        cookies = browser_cookie3.firefox(domain_name="armconverter.com")
+        # Retrieve Firefox cookies for the domain
+        try:
+            cookies = browser_cookie3.firefox(domain_name="armconverter.com")
+        except Exception as e:
+            print("Cookies do not exist.")
+            sys.exit(1)
 
-        # Filter for session cookies
+        # Filter for session cookies (non-expiring cookies)
         session_cookies = [cookie for cookie in cookies if not cookie.expires]
 
-        # Return the session cookies values
+        # If no session cookies are found, exit
+        if not session_cookies:
+            print("No session cookies found.")
+            sys.exit(1)
+
+        # Extract and print session cookie values
         session_cookie_values = [cookie.value for cookie in session_cookies]
 
-        # Print the session cookies values
-        for value in session_cookie_values:
-            if devmode:
+        if devmode:
+            for value in session_cookie_values:
                 print(value)
 
-            # Return the first session cookie value (or handle differently if needed)
-            if session_cookie_values:
-                return session_cookie_values[0]
-            else:
-                return None  # or handle no session cookies found case
+        # Return the first session cookie value, or None if no cookies are present
+        return session_cookie_values[0] if session_cookie_values else None
+
     except browser_cookie3.BrowserCookieError as e:
         print(f"Error occurred: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error occurred getting session: {e}")
         sys.exit(1)
 
 
@@ -76,10 +85,29 @@ def get_rm(nodownload):
 
 
 def get_scripts(
-    type, version, session, nodownload, onlydownload, dlprogress, limit, checkversion
+    type,
+    version,
+    session,
+    nodownload,
+    onlydownload,
+    dlprogress,
+    limit,
+    checkversion,
+    extract,
 ):
     if type == "apk":
         session = ""
+
+    if extract:
+        return [
+            [
+                f"script/down-{type}.py",
+                version,
+                session,
+                str(dlprogress),
+            ],
+            [f"misc/unpack-{type}.py", version],
+        ]
 
     if onlydownload:
         return [
@@ -156,6 +184,7 @@ def run_scripts(
     session,
     devmode,
     checkversion,
+    extract,
 ):
     limit = "0"
     if devmode:
@@ -174,51 +203,38 @@ def run_scripts(
         dlprogress,
         limit,
         checkversion,
+        extract,
     )
 
     try:
         print(f"Choosing type: {type}")
         print(f"Choosing version: {version}")
-        for script in scripts:
+        for index, script in enumerate(scripts):
             print(f"Running {script[0]}...")
             subprocess.run(["python"] + script, check=True)
-            print(f"Finished running {script[0]}.\n")
-            if not len(scripts) < 1:
+            print(f"Finished running {script[0]}.")
+            # Sleep only if this is not the last script
+            if index < len(scripts) - 1:
                 time.sleep(delay)
+                print(f"\n")
     except Exception as e:
         print(f"Error occurred while running script: {e}")
     except KeyboardInterrupt:
         print("Script execution interrupted by user.")
 
 
-def extract(type, version, session, devmode, nodownload, dlprogress):
-    try:
-        if type == "apk":
-            session = ""
-        else:
-            session = get_session(devmode)
-        print(f"Choosing type {type}")
-        if not nodownload:
-            print(f"Downloading {version}...")
-            subprocess.run(
-                [
-                    "python",
-                    f"script/down-{type}.py",
-                    version,
-                    session,
-                    str(bool(dlprogress)),
-                ],
-                check=True,
-            )
-        print(f"Extracting {type}...")
-        subprocess.run(["python", f"misc/unpack-{type}.py", version], check=True)
-    except KeyboardInterrupt:
-        print("Script execution interrupted by user.")
-        sys.exit(1)
-
-
 def main():
     parser = argparse.ArgumentParser(description="Run Subway Surfers scripts.")
+    parser.add_argument(
+        "-t",
+        "--type",
+        choices=["apk", "ipa"],
+        default="ipa",
+        help="Choose between type apk and ipa",
+    )
+    parser.add_argument(
+        "-v", "--version", type=str, default=version(), help="Choose a specific version"
+    )
     parser.add_argument(
         "-c", "--cleanup", action="store_true", help="Run cleanup function only"
     )
@@ -226,20 +242,10 @@ def main():
         "-nc", "--nocleanup", action="store_true", help="Prevents cleaning up any files"
     )
     parser.add_argument(
-        "-v", "--version", type=str, default=version(), help="Choose a specific version"
-    )
-    parser.add_argument(
         "-e",
         "--extract",
         action="store_true",
         help="Download and extract the latest apk/ipa",
-    )
-    parser.add_argument(
-        "-t",
-        "--type",
-        choices=["apk", "ipa"],
-        default="ipa",
-        help="Choose between type apk and ipa",
     )
     parser.add_argument(
         "-ndl",
@@ -310,18 +316,24 @@ def main():
         if args.cleanup:
             cleanup(args.nodownload, args.nocleanup)
         elif args.extract:
-            cleanup(args.nodownload, args.nocleanup)
+            if not args.nocleanup:
+                cleanup(args.nodownload, args.nocleanup)
             setup(True, args.onlydownload)
-            extract(
+            run_scripts(
                 args.type,
                 args.version,
+                args.nodownload,
+                args.onlydownload,
+                args.dlprogress,
+                args.delay,
                 args.session,
                 args.devmode,
-                args.nodownload,
-                args.dlprogress,
+                args.checkversion,
+                args.extract,
             )
         else:
-            cleanup(args.nodownload, args.nocleanup)
+            if not args.nocleanup:
+                cleanup(args.nodownload, args.nocleanup)
             setup(False, args.onlydownload)
             run_scripts(
                 args.type,
@@ -333,6 +345,7 @@ def main():
                 args.session,
                 args.devmode,
                 args.checkversion,
+                args.extract,
             )
     except Exception as e:
         print("Error:", e)
