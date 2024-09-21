@@ -14,6 +14,7 @@ async def extract_data(html):
 
     data = []
     seen_names = set()
+    number = 1
 
     tr_elements = soup.select("table.article-table tr")
 
@@ -22,8 +23,7 @@ async def extract_data(html):
         if len(td_elements) < 6:
             continue
 
-        number, link_element, name, status_text, img_element = (
-            td_elements[0].text.strip(),
+        link_element, name, status_text, img_element = (
             td_elements[1].select_one("a"),
             td_elements[2].text.strip(),
             td_elements[4].text.strip(),
@@ -56,15 +56,19 @@ async def extract_data(html):
                 and img_url is not None
             )
 
+        if removed:
+            continue
+
         board_data = {
             "number": int(number),
             "name": name,
-            "available": available,
             "img_url": img_url,
+            "available": available,
         }
+        number += 1
 
-        if removed:
-            board_data["removed"] = True
+        #if removed:
+        #    board_data["removed"] = True
 
         data.append(board_data)
         print(f"Scraped: {name}")
