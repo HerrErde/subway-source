@@ -13,7 +13,6 @@ async def extract_data(html):
     print("Table loaded!")
 
     data = []
-    seen_names = set()
     number = 1
 
     tr_elements = soup.select("table.article-table tr")
@@ -23,38 +22,35 @@ async def extract_data(html):
         if len(td_elements) < 6:
             continue
 
-        link_element, name, status_text, img_element = (
+        link_element, name, img_tags = (
             td_elements[1].select_one("a"),
-            td_elements[2].text.strip(),
-            td_elements[4].text.strip(),
-            td_elements[5].select_one("img"),
+            td_elements[2],
+            td_elements[3].select("img"),
         )
 
-        if name in seen_names:
-            continue
-
-        seen_names.add(name)
+        name = (
+            td_elements[2].select_one("a").text.strip()
+            if td_elements[2].select_one("a")
+            else (
+                td_elements[2].select_one("b").text.strip()
+                if td_elements[2].select_one("b")
+                else None
+            )
+        )
 
         removed = bool(td_elements[2].select_one("s"))
 
-        img_url = None
-        if link_element:
-            link_class = link_element.get("class", [])
-            if "new" not in link_class:
-                img_url = link_element.get("href", "").strip()
-                img_url = img_url.split(".png")[0] + ".png"
+        img_url = (
+            link_element.get("href", "").split(".png")[0] + ".png"
+            if link_element and "new" not in link_element.get("class", [])
+            else None
+        )
 
-        # Use regex to check for "Tba"
         tba_pattern = re.compile(r"TbaName\w*", re.IGNORECASE)
-        if tba_pattern.search(status_text) or tba_pattern.search(str(td_elements[3])):
-            available = False
-        else:
-            # Set availability to True if the first 4 letters of status_text are "Yes" or "No"
-            available = (
-                status_text[:3].lower() in ["yes", "no"]
-                and not img_element
-                and img_url is not None
-            )
+
+        tba_in_img = any(tba_pattern.search(img.get("alt", "")) for img in img_tags)
+
+        available = not tba_in_img and img_url is not None
 
         if removed:
             continue
@@ -67,7 +63,7 @@ async def extract_data(html):
         }
         number += 1
 
-        #if removed:
+        # if removed:
         #    board_data["removed"] = True
 
         data.append(board_data)
@@ -80,7 +76,6 @@ async def fetch_data(session, url, json_file):
     try:
         async with session.get(url) as response:
             response.raise_for_status()
-            # Ensure correct encoding
             html = await response.text(encoding="utf-8")
             data = await extract_data(html)
     except aiohttp.ClientError as e:
