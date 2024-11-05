@@ -1,5 +1,6 @@
 import re
 import sys
+import os
 
 import requests
 from bs4 import BeautifulSoup
@@ -91,9 +92,7 @@ if not url2:
 
 response = requests.get(f"https://www.apkmirror.com{url2}", headers=headers)
 page3 = response.text
-url3 = BeautifulSoup(page3, "html.parser").select_one(
-    'a[data-google-vignette="false"][rel="nofollow"]'
-)["href"]
+url3 = BeautifulSoup(page3, "html.parser").select_one("#download-link")["href"]
 
 if not url3:
     print("error", file=sys.stderr)
@@ -104,37 +103,47 @@ print(apk_url, file=sys.stderr)
 
 try:
     download_response = requests.get(apk_url, headers=headers)
-    response.raise_for_status()
+    download_response.raise_for_status()
+
+    if download_response.status_code == 200:
+
+        # Get total file size from headers
+        total_size = int(download_response.headers.get("content-length", 0))
+
+        # Open file for writing in binary mode
+        with open(f"temp/{appName}-{appVer}.apk", "wb") as file:
+            if dlprogress is True:
+
+                # Initialize tqdm progress bar
+                progress_bar = tqdm(
+                    total=total_size,
+                    unit="B",
+                    unit_scale=True,
+                    unit_divisor=1024,
+                    desc="Downloading",
+                )
+
+                # Write file in chunks and update progress bar
+                for chunk in download_response.iter_content(chunk_size=8192):
+                    if chunk:  # Filter out keep-alive new chunks
+                        file.write(chunk)
+                        progress_bar.update(len(chunk))
+
+                progress_bar.close()
+            else:
+                file.write(download_response.content)
+
+    # Verify file size if content-length header is available
+    if total_size > 0:
+        actual_size = os.path.getsize(file_path)
+        if actual_size != total_size:
+            print("File download incomplete. Size mismatch.")
+            sys.exit(1)
+
+        print("Download successful.")
+    else:
+        print("Failed to download the file.")
+
 except requests.exceptions.HTTPError:
     print(f"Error fetching version information: {response.status_code}")
-    return
-
-    # Get total file size from headers
-    total_size = int(download_response.headers.get("content-length", 0))
-
-    # Open file for writing in binary mode
-    with open(f"temp/{appName}-{appVer}.apk", "wb") as file:
-        if dlprogress is True:
-
-            # Initialize tqdm progress bar
-            progress_bar = tqdm(
-                total=total_size,
-                unit="B",
-                unit_scale=True,
-                unit_divisor=1024,
-                desc="Downloading",
-            )
-
-            # Write file in chunks and update progress bar
-            for chunk in download_response.iter_content(chunk_size=8192):
-                if chunk:  # Filter out keep-alive new chunks
-                    file.write(chunk)
-                    progress_bar.update(len(chunk))
-
-            progress_bar.close()
-        else:
-            file.write(download_response.content)
-
-    print("Download successful.")
-else:
-    print("Failed to download the file.")
+    sys.exit(1)

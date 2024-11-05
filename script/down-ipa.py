@@ -1,5 +1,6 @@
 import re
 import sys
+import os
 
 import requests
 
@@ -151,7 +152,17 @@ def download(version, session, dlprogress):
                     print("Downloading...")
                     file.write(download_response.content)
 
-        print("Download successful.")
+        # Verify file size if content-length header is available
+        if total_size > 0:
+            actual_size = os.path.getsize(f"temp/{appName}-{version}.ipa")
+            if actual_size != total_size:
+                print("File download incomplete. Size mismatch.")
+                sys.exit(1)
+
+            print("Download successful.")
+        else:
+            print("Failed to download the file.")
+
     except requests.RequestException as e:
         print(f"An HTTP error occurred: {e}")
         sys.exit(1)
