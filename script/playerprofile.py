@@ -4,11 +4,9 @@ input_file_path = "temp/gamedata/playerprofile.json"
 output_file_path = "temp/output/playerprofile_output.json"
 
 
-# Read the file content into a variable
 with open(input_file_path) as file:
     json_data = json.load(file)
 
-# Initialize lists to store extracted IDs
 profile_portraits_ids = []
 profile_frames_ids = []
 profile_backgrounds_ids = []
@@ -32,6 +30,5 @@ extracted_data = {
     "profileBackgrounds": profile_backgrounds_ids,
 }
 
-# Save the extracted data to a JSON file
-with open(output_file_path, "w") as file:
+with open(output_file_path, "w", encoding="utf-8") as file:
     json.dump(extracted_data, file, indent=2)

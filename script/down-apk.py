@@ -44,7 +44,6 @@ if 'class="apkm-badge">' not in page:
     sys.exit(1)
 
 
-# Parse HTML content using BeautifulSoup
 soup = BeautifulSoup(page, "html.parser")
 
 # Find all <div> elements with class "table-cell rowheight addseparator expand pad dowrap"
@@ -80,9 +79,7 @@ else:
     sys.exit(1)
 
 
-response = requests.get(
-    f"https://www.apkmirror.com{url1}", headers=headers
-)
+response = requests.get(f"https://www.apkmirror.com{url1}", headers=headers)
 page2 = response.text
 url2 = BeautifulSoup(page2, "html.parser").select_one(
     'a:-soup-contains("Download APK")'
@@ -92,9 +89,7 @@ if not url2:
     print("error", file=sys.stderr)
     sys.exit(1)
 
-response = requests.get(
-    f"https://www.apkmirror.com{url2}", headers=headers
-)
+response = requests.get(f"https://www.apkmirror.com{url2}", headers=headers)
 page3 = response.text
 url3 = BeautifulSoup(page3, "html.parser").select_one(
     'a[data-google-vignette="false"][rel="nofollow"]'

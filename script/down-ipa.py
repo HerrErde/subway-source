@@ -111,7 +111,7 @@ def download(version, session, dlprogress):
     try:
         # POST request to prepare download
         response = requests.post(f"{download_base_url}/prepare", headers=headers)
-        response.raise_for_status()  # Check for HTTP errors
+        response.raise_for_status()
         data = response.json()
 
         if data.get("loginRequired"):

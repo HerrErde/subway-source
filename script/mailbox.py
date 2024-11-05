@@ -3,13 +3,10 @@ import json
 input_file_path = "temp/gamedata/mailbox.json"
 output_file_path = "temp/upload/mailbox_data.json"
 
-with open(input_file_path, "r") as input_file:
+with open(input_file_path, "r", encoding="utf-8") as input_file:
     data = json.load(input_file)
-    entries = data.get(
-        "entries", {}
-    )  # Get the "entries" dictionary from the loaded JSON data
+    entries = data.get("entries", {})
 
-    # Extract names of each entry dictionary
     entry_names = list(entries.keys())
 
 output_data = {"entries": entry_names}

@@ -9,7 +9,7 @@ type_mapping = {"Character": 2, "Hoverboard": 3}
 
 
 def read_json(file_path):
-    with open(file_path, "r") as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         return json.load(file)
 
 
@@ -23,7 +23,7 @@ def extract_items(collection_info):
 def get_time_slot(data):
     pattern = r"collection_season_S(\d+)"
     for key, value in data.get("seasonalCollections", {}).items():
-        if re.match(pattern, key):  # Directly use re.match() in the conditional
+        if re.match(pattern, key):
             return value.get("timeSlot", "")
     return ""
 
@@ -53,8 +53,9 @@ def main():
         "seasonalCollections": seasonal_collections,
     }
 
-    with open(output_file, "w") as file:
+    with open(output_file, "w", encoding="utf-8") as file:
         json.dump(output_data, file, indent=2)
 
 
-main()
+if __name__ == "__main__":
+    main()

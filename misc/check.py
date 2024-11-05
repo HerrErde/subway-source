@@ -45,10 +45,10 @@ def download_file(url, filename):
 def compare_characters(file, output_file):
     old_file = file.replace(".json", "_old.json")
 
-    with open(f"temp/{old_file}", "r") as f:
+    with open(f"temp/{old_file}", "r", encoding="utf-8") as f:
         old_data = json.load(f)
 
-    with open(f"temp/upload/{file}", "r") as f:
+    with open(f"temp/upload/{file}", "r", encoding="utf-8") as f:
         new_data = json.load(f)
 
     old_ids = {entry["id"] for entry in old_data}
@@ -82,10 +82,10 @@ def compare_characters(file, output_file):
 def compare_boards(file, output_file):
     old_file = file.replace(".json", "_old.json")
 
-    with open(f"temp/{old_file}", "r") as f:
+    with open(f"temp/{old_file}", "r", encoding="utf-8") as f:
         old_data = json.load(f)
 
-    with open(f"temp/upload/{file}", "r") as f:
+    with open(f"temp/upload/{file}", "r", encoding="utf-8") as f:
         new_data = json.load(f)
 
     old_ids = {entry["id"] for entry in old_data}
@@ -127,10 +127,10 @@ def compare_boards(file, output_file):
 def compare_profile(file, output_file):
     old_file = file.replace(".json", "_old.json")
 
-    with open(f"temp/{old_file}", "r") as f:
+    with open(f"temp/{old_file}", "r", encoding="utf-8") as f:
         old_data = json.load(f)
 
-    with open(f"temp/upload/{file}", "r") as f:
+    with open(f"temp/upload/{file}", "r", encoding="utf-8") as f:
         new_data = json.load(f)
 
     added_portrait = set(new_data["profilePortraits"]) - set(
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 1:
         version = sys.argv[1]
     download_latest_files(version)
-    with open(output_file, "w") as file:
+    with open(output_file, "w", encoding="utf-8") as file:
         compare_characters(characters, output_file)
         compare_boards(hoverboards, output_file)
         compare_profile(playerprofile, output_file)

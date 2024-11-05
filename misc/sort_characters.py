@@ -13,7 +13,7 @@ other_strings = ["dak", "lamar", "tom", "odell", "patrick", "saquon"]
 
 def read_json(file_path):
     # Read and return JSON data from the specified file
-    with open(file_path, "r") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -100,7 +100,7 @@ def main():
     extracted_names = extract(link_data, replace_data)
     ordered_data = sort_json(json_data, extracted_names)
 
-    with open(json_output, "w") as f:
+    with open(json_output, "w", encoding="utf-8") as f:
         json.dump(ordered_data, f, indent=2)
 
 

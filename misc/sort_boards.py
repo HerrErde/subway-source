@@ -10,7 +10,7 @@ ignore_strings = ["nflpa", "sakar"]
 
 
 def read_json(file_path):
-    with open(file_path, "r") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -77,7 +77,7 @@ def sort_json(data, link_names, ignore_strings):
         append_data(item_id, len(ordered_data) + 1, ordered_data, item)
 
     # Write the processed data to the output JSON file
-    with open(json_output, "w") as f:
+    with open(json_output, "w", encoding="utf-8")as f:
         json.dump(ordered_data, f, indent=2)
 
 

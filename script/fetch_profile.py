@@ -21,7 +21,7 @@ def fetch_data(url):
 
 def get_id(h3_title):
     response = requests.get(url)
-    response.raise_for_status()  # Check for request errors
+    response.raise_for_status()
 
     soup = BeautifulSoup(response.text, "html.parser")
 

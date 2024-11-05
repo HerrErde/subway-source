@@ -10,7 +10,7 @@ json_output = "temp/upload/playerprofile_data.json"
 
 def read_json(file_path):
     """Read and return JSON data from the specified file."""
-    with open(file_path, "r") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         data = json.load(f)
     return data
 
@@ -148,7 +148,7 @@ def main():
     }
 
     # Save sorted output to file
-    with open(json_output, "w") as f:
+    with open(json_output, "w", encoding="utf-8"):
         json.dump(sorted_output, f, indent=2)
 
 

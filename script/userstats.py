@@ -3,13 +3,10 @@ import json
 input_file_path = "temp/gamedata/cities.json"
 output_file_path = "temp/upload/cities_data.json"
 
-with open(input_file_path, "r") as input_file:
+with open(input_file_path, "r", encoding="utf-8") as input_file:
     data = json.load(input_file)
-    cities = data.get(
-        "cities", {}
-    )  # Get the "entries" dictionary from the loaded JSON data
+    cities = data.get("cities", {})
 
-    # Extract names of each entry dictionary
     names = list(cities.keys())
 
 output_data = {"cities": names}
