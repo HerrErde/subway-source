@@ -1,7 +1,7 @@
 import json
 import unicodedata
 
-from fuzzywuzzy import fuzz
+from rapidfuzz import fuzz
 
 json_input = "temp/output/playerprofile_output.json"
 json_input_links = "temp/upload/playerprofile_links.json"
