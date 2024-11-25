@@ -148,7 +148,7 @@ def main():
     }
 
     # Save sorted output to file
-    with open(json_output, "w", encoding="utf-8"):
+    with open(json_output, "w", encoding="utf-8") as f:
         json.dump(sorted_output, f, indent=2)
 
 
