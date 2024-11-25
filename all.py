@@ -131,6 +131,7 @@ def get_scripts(
         ["script/collection.py"],
         ["script/calender.py"],
         ["script/mailbox.py"],
+        ["script/achievements.py"],
         ["misc/sort_characters.py"],
         ["misc/sort_boards.py"],
         ["misc/sort_profile.py"],
