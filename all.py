@@ -94,7 +94,10 @@ def get_scripts(
     limit,
     checkversion,
     extract,
+    skip,
 ):
+    skip_list = [script.strip() for script in skip.split(",") if script.strip()]
+
     if type == "apk":
         session = ""
 
@@ -147,6 +150,13 @@ def get_scripts(
         ]
         script_list.insert(0, download_script)
 
+    # Filter out skipped scripts
+    script_list = [
+        script
+        for script in script_list
+        if script[0].split("/")[-1].split(".")[0] not in skip_list
+    ]
+
     return script_list
 
 
@@ -186,6 +196,7 @@ def run_scripts(
     devmode,
     checkversion,
     extract,
+    skip,
 ):
     limit = "0"
     if devmode:
@@ -205,6 +216,7 @@ def run_scripts(
         limit,
         checkversion,
         extract,
+        skip,
     )
 
     try:
@@ -252,7 +264,7 @@ def main():
         "-ndl",
         "--nodownload",
         action="store_true",
-        help="Run scripts without downloading game file (Game has to be downloaded beforehand)",
+        help="Run scripts without downloading game file (game file has to be downloaded beforehand)",
     )
     parser.add_argument(
         "-odl",
@@ -293,6 +305,13 @@ def main():
         default="",
         help="Check the updated items against an older version than just the last one",
     )
+    parser.add_argument(
+        "-skp",
+        "--skip",
+        type=str,
+        default="",
+        help="Write a list of scripts that should be skiped, with or without extension. (Like this 'collection.py,playerprofile,calender')",
+    )
 
     args = parser.parse_args()
 
@@ -331,6 +350,7 @@ def main():
                 args.devmode,
                 args.checkversion,
                 args.extract,
+                args.skip,
             )
         else:
             if not args.nocleanup:
@@ -347,6 +367,7 @@ def main():
                 args.devmode,
                 args.checkversion,
                 args.extract,
+                args.skip,
             )
     except Exception as e:
         print("Error:", e)
