@@ -2,6 +2,8 @@ import json
 import re
 import unicodedata
 
+from rapidfuzz import fuzz
+
 json_input = "temp/output/characters_output.json"
 json_input_links = "temp/upload/characters_links.json"
 json_output = "temp/upload/characters_data.json"
@@ -54,39 +56,51 @@ def append_data(item_id, count, ordered_data, item):
     )
 
 
+def calculate_similarity(name1, name2):
+    similarity = fuzz.ratio(name1, name2)
+    return similarity
+
+
 def sort_json(data, link_names):
-    # Sort and process JSON data based on link names."""
-    item_dict = {item["id"].lower(): item for item in data}
     ordered_data = []
 
+    data_dict = {item["id"].lower(): item for item in data}
+
     for name in link_names:
-        found_item = item_dict.get(name)
+        best_match = None
+        best_score = 0
 
-        if not found_item:
-            for key, item in item_dict.items():
-                modified_key = key
-                for ignore in ignore_strings:
-                    modified_key = modified_key.replace(ignore, "")
+        for key, item in data_dict.items():
+            modified_key = key
 
-                for other in other_strings:
-                    if other in modified_key:
-                        modified_key = modified_key.split(other)[0] + other
-                        break
+            for ignore in ignore_strings:
+                modified_key = modified_key.replace(ignore, "")
 
-                if name == modified_key or name in modified_key:
-                    found_item = item
+            for other in other_strings:
+                if other in modified_key:
+                    modified_key = modified_key.split(other)[0] + other
                     break
 
-        if found_item:
+            score = calculate_similarity(name, modified_key)
+
+            if score > best_score:
+                best_score = score
+                best_match = item
+
+            if name == modified_key or name in modified_key:
+                best_match = item
+                break
+
+        if best_match:
             append_data(
-                found_item["id"].lower(),
+                best_match["id"].lower(),
                 len(ordered_data) + 1,
                 ordered_data,
-                found_item,
+                best_match,
             )
-            item_dict.pop(found_item["id"].lower(), None)
+            data_dict.pop(best_match["id"].lower(), None)
 
-    for item_id, item in item_dict.items():
+    for item_id, item in data_dict.items():
         append_data(item_id.lower(), len(ordered_data) + 1, ordered_data, item)
 
     return ordered_data

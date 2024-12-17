@@ -26,8 +26,9 @@ def normalize_string(input_string):
 
 
 def normalize_name(name):
-    # Normalize name for matching (e.g., remove spaces, convert to lowercase)
-    normalized = normalize_string(name).replace(" ", "").replace("graffiti", "").lower()
+    normalized = normalize_string(name)
+    normalized = normalized.replace(" ", "").lower()
+    normalized = normalized.replace("graffiti", "")
     return normalized
 
 
