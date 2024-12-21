@@ -203,7 +203,7 @@ def run_scripts(
         limit = "5"
 
     if not nodownload:
-        if not session:
+        if not session and not type == "apk":
             session = get_session(devmode)
 
     scripts = get_scripts(

@@ -131,6 +131,7 @@ try:
 
                 progress_bar.close()
             else:
+                print("Downloading...")
                 file.write(download_response.content)
 
     # Verify file size if content-length header is available
