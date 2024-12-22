@@ -47,19 +47,19 @@ if 'class="apkm-badge">' not in page:
 
 soup = BeautifulSoup(page, "html.parser")
 
-# Find all <div> elements with class "table-cell rowheight addseparator expand pad dowrap"
+# Find all <div> elements with class "table-cell rowheight addseparator expand pad dowrap-break-all"
 table_cell_divs = soup.find_all(
-    "div", class_="table-cell rowheight addseparator expand pad dowrap"
+    "div", class_="table-cell rowheight addseparator expand pad dowrap-break-all"
 )
 
 if not table_cell_divs:
     print(
-        "Error: Required div 'table-cell rowheight addseparator expand pad dowrap' not found.",
+        "Error: Required div 'table-cell rowheight addseparator expand pad dowrap-break-all' not found.",
         file=sys.stderr,
     )
     sys.exit(1)
 
-# print(f"Found {len(table_cell_divs)} 'table-cell rowheight addseparator expand pad dowrap' div(s) on the page.")
+# print(f"Found {len(table_cell_divs)} 'table-cell rowheight addseparator expand pad dowrap-break-all' div(s) on the page.")
 
 # Iterate through each found div
 for table_cell_div in table_cell_divs:
