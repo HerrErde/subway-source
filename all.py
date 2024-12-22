@@ -221,19 +221,37 @@ def run_scripts(
 
     try:
         print(f"Choosing type: {type}")
-        print(f"Choosing version: {version}")
+        print(f"Choosing version: {version}.\n")
+
         for index, script in enumerate(scripts):
             print(f"Running {script[0]}...")
-            subprocess.run(["python"] + script, check=True)
-            print(f"Finished running {script[0]}.")
+            if script[0].startswith("script/down-ipa.py"):
+                result = subprocess.run(
+                    ["python"] + script,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+
+                output = result.stdout.strip()
+                print(output)
+                if "quota" in output.lower():
+                    sys.exit(1)
+
+            else:
+                subprocess.run(["python"] + script, check=True)
+                print(f"Finished running {script[0]}.")
+
             # Sleep only if this is not the last script
             if index < len(scripts) - 1:
                 time.sleep(delay)
                 print(f"\n")
     except Exception as e:
         print(f"Error occurred while running script: {e}")
+        sys.exit(1)
     except KeyboardInterrupt:
         print("Script execution interrupted by user.")
+        sys.exit(0)
 
 
 def main():

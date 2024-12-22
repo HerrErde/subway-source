@@ -5,7 +5,7 @@ import os
 import requests
 
 appid = 512939461
-apppackage = "com.kiloo.subwaysurfers"
+appackage = "com.kiloo.subwaysurfers"
 userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
 appName = "subwaysurfers"
 
@@ -23,16 +23,20 @@ if not re.match(r"^\d{1,2}-\d{1,2}-\d{1,2}$", version):
 
 appver = version.replace("-", ".")
 
+session = sys.argv[2]
+
+dlprogress = False
+if len(sys.argv) >= 4:
+    dlprogress = sys.argv[3]
+
+
 version_url = (
     f"https://armconverter.com/decryptedappstore/versions/{appid}/{appver}?country=us"
 )
-prepare_url = f"https://armconverter.com/decryptedappstore/download/{appid}/{apppackage}/{appver}/prepare"
 download_base_url = (
-    f"https://armconverter.com/decryptedappstore/download/{appid}/{apppackage}/{appver}"
+    f"https://armconverter.com/decryptedappstore/download/{appid}/{appackage}/{appver}"
 )
-info_url = f"https://armconverter.com/decryptedappstore/download/{appid}/{apppackage}/{appver}/info"
 
-session = sys.argv[2]
 
 headers = {
     "User-Agent": userAgent,
@@ -40,9 +44,6 @@ headers = {
     "Cookie": f"session={session}",
 }
 
-dlprogress = False
-if len(sys.argv) >= 4:
-    dlprogress = sys.argv[3]
 
 """
 def user(session):
@@ -107,8 +108,25 @@ def check_version(version, session):
         sys.exit(1)
 
 
-def download(version, session, dlprogress):
+def check_quota(session):
+    try:
+        response = requests.post(f"{download_base_url}/prepare", headers=headers)
 
+        data = response.json()
+
+        error = data.get("error", None)
+
+        if response.status_code == 400 and error == "QUOTA_EXCEEDED":
+            return False
+
+        return True
+
+    except Exception as e:
+        print(f"Unexpected error occurred: {e}")
+        sys.exit(1)
+
+
+def download(version, session, dlprogress):
     try:
         # POST request to prepare download
         response = requests.post(f"{download_base_url}/prepare", headers=headers)
@@ -177,7 +195,11 @@ def main():
     if session:
         check_session(session)
         check_version(version, session)
-        download(version, session, dlprogress)
+        quota = check_quota(session)
+        if quota:
+            download(version, session, dlprogress)
+        else:
+            print("Quota exceeded. Please try again later.")
     else:
         print("No session cookie found.")
         sys.exit(1)
