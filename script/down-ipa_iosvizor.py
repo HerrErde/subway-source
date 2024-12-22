@@ -40,7 +40,6 @@ except requests.exceptions.HTTPError:
     print(
         f"Failed to download {appName} version {appVer}. HTTP status code: {response.status_code}"
     )
-    return
 
 appVer = appVer.replace(".", "-")
 

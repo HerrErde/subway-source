@@ -9,7 +9,7 @@ with open(input_file_path, "r", encoding="utf-8") as input_file:
 output_data = []
 achievement_data = data.get("achievementData", {})
 
-for achievement_key, achievements_data in achievement_data.items():
+for _, achievements_data in achievement_data.items():
     objective = achievements_data.get("objective", {})
     id = objective.get("id", "")
     tierGoals = achievements_data.get("tierGoals", [])

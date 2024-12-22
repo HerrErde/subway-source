@@ -56,8 +56,6 @@ def match_profiles(profiles, name_list):
     matched_profiles = []
     unmatched_profiles = []
 
-    name_list_set = set(name_list)  # For quick lookup
-
     for profile in profiles:
         profile_name = extract_name(profile)
         best_match = None
@@ -87,8 +85,6 @@ def match_frames(frames, name_list):
     # Match frames to names based on fuzzy string matching
     matched_frames = []
     unmatched_frames = []
-
-    name_list_set = set(name_list)  # For quick lookup
 
     for frame in frames:
         frame_name = normalize_name(frame)  # Directly use frame as a string

@@ -27,8 +27,11 @@ def get_session(devmode):
         # Retrieve Firefox cookies for the domain
         try:
             cookies = browser_cookie3.firefox(domain_name="armconverter.com")
+        except browser_cookie3.BrowserCookieError:
+            print("Cookies do not exist or cannot be accessed.")
+            sys.exit(1)
         except Exception as e:
-            print("Cookies do not exist.")
+            print(f"An unexpected error occurred: {e}")
             sys.exit(1)
 
         # Filter for session cookies (non-expiring cookies)
@@ -85,7 +88,7 @@ def get_rm(nodownload):
 
 
 def get_scripts(
-    type,
+    type_,
     version,
     session,
     nodownload,
@@ -98,24 +101,24 @@ def get_scripts(
 ):
     skip_list = [script.strip() for script in skip.split(",") if script.strip()]
 
-    if type == "apk":
+    if type_ == "apk":
         session = ""
 
     if extract:
         return [
             [
-                f"script/down-{type}.py",
+                f"script/down-{type_}.py",
                 version,
                 session,
                 str(dlprogress),
             ],
-            [f"misc/unpack-{type}.py", version],
+            [f"misc/unpack-{type_}.py", version],
         ]
 
     if onlydownload:
         return [
             [
-                f"script/down-{type}.py",
+                f"script/down-{type_}.py",
                 version,
                 session,
                 str(dlprogress),
@@ -123,7 +126,7 @@ def get_scripts(
         ]
 
     script_list = [
-        [f"misc/unpack-{type}.py", version],
+        [f"misc/unpack-{type_}.py", version],
         ["script/fetch_links.py"],
         ["script/fetch_profile.py"],
         ["script/fetch_outfits.py", limit],
@@ -143,7 +146,7 @@ def get_scripts(
 
     if not nodownload:
         download_script = [
-            f"script/down-{type}.py",
+            f"script/down-{type_}.py",
             version,
             session,
             str(dlprogress),
@@ -186,7 +189,7 @@ def cleanup(nodownload, nocleanup):
 
 
 def run_scripts(
-    type,
+    type_,
     version,
     nodownload,
     onlydownload,
@@ -203,11 +206,11 @@ def run_scripts(
         limit = "5"
 
     if not nodownload:
-        if not session and not type == "apk":
+        if not session and not type_ == "apk":
             session = get_session(devmode)
 
     scripts = get_scripts(
-        type,
+        type_,
         version,
         session,
         nodownload,
@@ -220,9 +223,8 @@ def run_scripts(
     )
 
     try:
-        print(f"Choosing type: {type}")
-        print(f"Choosing version: {version}.\n")
-
+        print(f"Choosing type: {type_}")
+        print(f"Choosing version: {version}\n")
         for index, script in enumerate(scripts):
             print(f"Running {script[0]}...")
             if script[0].startswith("script/down-ipa.py"):
@@ -245,7 +247,7 @@ def run_scripts(
             # Sleep only if this is not the last script
             if index < len(scripts) - 1:
                 time.sleep(delay)
-                print(f"\n")
+                print("\n")
     except Exception as e:
         print(f"Error occurred while running script: {e}")
         sys.exit(1)
@@ -304,7 +306,7 @@ def main():
         help="Change the delay between the running scripts",
     )
     parser.add_argument(
-        "-s",
+        "-sess",
         "--session",
         type=str,
         default="",
@@ -353,40 +355,23 @@ def main():
     try:
         if args.cleanup:
             cleanup(args.nodownload, args.nocleanup)
-        elif args.extract:
-            if not args.nocleanup:
-                cleanup(args.nodownload, args.nocleanup)
-            setup(True, args.onlydownload)
-            run_scripts(
-                args.type,
-                args.version,
-                args.nodownload,
-                args.onlydownload,
-                args.dlprogress,
-                args.delay,
-                args.session,
-                args.devmode,
-                args.checkversion,
-                args.extract,
-                args.skip,
-            )
-        else:
-            if not args.nocleanup:
-                cleanup(args.nodownload, args.nocleanup)
-            setup(False, args.onlydownload)
-            run_scripts(
-                args.type,
-                args.version,
-                args.nodownload,
-                args.onlydownload,
-                args.dlprogress,
-                args.delay,
-                args.session,
-                args.devmode,
-                args.checkversion,
-                args.extract,
-                args.skip,
-            )
+        if not args.nocleanup:
+            cleanup(args.nodownload, args.nocleanup)
+        setup(args.extract, args.onlydownload)
+        run_scripts(
+            args.type,
+            args.version,
+            args.nodownload,
+            args.onlydownload,
+            args.dlprogress,
+            args.delay,
+            args.session,
+            args.devmode,
+            args.checkversion,
+            args.extract,
+            args.skip,
+        )
+
     except Exception as e:
         print("Error:", e)
         sys.exit(1)

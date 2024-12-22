@@ -1,6 +1,6 @@
+import os
 import re
 import sys
-import os
 
 import requests
 from bs4 import BeautifulSoup
@@ -110,8 +110,10 @@ try:
         # Get total file size from headers
         total_size = int(download_response.headers.get("content-length", 0))
 
+        file_path = f"temp/{appName}-{appVer}.apk"
+
         # Open file for writing in binary mode
-        with open(f"temp/{appName}-{appVer}.apk", "wb") as file:
+        with open(file_path, "wb") as file:
             if dlprogress is True:
 
                 # Initialize tqdm progress bar
