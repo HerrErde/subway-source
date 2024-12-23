@@ -135,6 +135,7 @@ def get_scripts(
         ["script/playerprofile.py"],
         ["script/userstats.py"],
         ["script/collection.py"],
+        ["script/challenges.py"],
         ["script/calender.py"],
         ["script/mailbox.py"],
         ["script/achievements.py"],
