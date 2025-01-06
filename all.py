@@ -61,7 +61,7 @@ def get_session(devmode):
 
 
 def version():
-    url = "https://gplayapi.cashlessconsumer.in/api/apps/com.kiloo.subwaysurf"
+    url = "https://gplayapi.herrerde.xyz/api/apps/com.kiloo.subwaysurf"
     response = requests.get(url)
     data = response.json()
     return data.get("version", "").replace(".", "-")
@@ -267,7 +267,7 @@ def main():
         help="Choose between type apk and ipa",
     )
     parser.add_argument(
-        "-v", "--version", type=str, default=version(), help="Choose a specific version"
+        "-v", "--version", type=str, default=None, help="Choose a specific version"
     )
     parser.add_argument(
         "-c", "--cleanup", action="store_true", help="Run cleanup function only"
@@ -285,7 +285,7 @@ def main():
         "-ndl",
         "--nodownload",
         action="store_true",
-        help="Run scripts without downloading game file (game file has to be downloaded beforehand)",
+        help="Run scripts without downloading the game file (requires pre-downloaded file)",
     )
     parser.add_argument(
         "-odl",
@@ -324,30 +324,34 @@ def main():
         "--checkversion",
         type=str,
         default="",
-        help="Check the updated items against an older version than just the last one",
+        help="Compare updates to a version older than the latest",
     )
     parser.add_argument(
         "-skp",
         "--skip",
         type=str,
         default="",
-        help="Write a list of scripts that should be skiped, with or without extension. (Like this 'collection.py,playerprofile,calender')",
+        help="Write a list of scripts that should be skipped, with or without extension. (Like this 'collection.py,playerprofile,calender')",
     )
 
     args = parser.parse_args()
 
+    # If version is not provided, set it using the version() function
+    if args.version is None:
+        args.version = version()
+
     # Regex pattern
-    pattern = r"^\d{1,2}-\d{1,2}-\d{1,2}$"
+    version_pattern = r"^\d{1,2}-\d{1,2}-\d{1,2}$"
 
     # Validate 'version'
-    if args.version and not re.match(pattern, args.version):
+    if args.version and not re.match(version_pattern, args.version):
         print(
             "Error: 'version' has the wrong format. Please use the format 'X-Y-Z' (e.g., '3-12-2')."
         )
         sys.exit(1)
 
     # Validate 'checkversion'
-    if args.checkversion and not re.match(pattern, args.checkversion):
+    if args.checkversion and not re.match(version_pattern, args.checkversion):
         print(
             "Error: 'checkversion' has the wrong format. Please use the format 'X-Y-Z' (e.g., '3-12-2')."
         )
