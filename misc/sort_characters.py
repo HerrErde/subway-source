@@ -2,8 +2,6 @@ import json
 import re
 import unicodedata
 
-from rapidfuzz import fuzz
-
 json_input = "temp/output/characters_output.json"
 json_input_links = "temp/upload/characters_links.json"
 json_output = "temp/upload/characters_data.json"
@@ -20,7 +18,7 @@ def read_json(file_path):
 
 
 def normalize_string(input_string):
-    # Normalize strings by replacing accented characters with their base counterparts."""
+    # Normalize strings by replacing accented characters with their base counterparts.
     return (
         unicodedata.normalize("NFKD", input_string)
         .encode("ASCII", "ignore")
@@ -56,51 +54,39 @@ def append_data(item_id, count, ordered_data, item):
     )
 
 
-def calculate_similarity(name1, name2):
-    similarity = fuzz.ratio(name1, name2)
-    return similarity
-
-
 def sort_json(data, link_names):
+    # Sort and process JSON data based on link names."""
+    item_dict = {item["id"].lower(): item for item in data}
     ordered_data = []
 
-    data_dict = {item["id"].lower(): item for item in data}
-
     for name in link_names:
-        best_match = None
-        best_score = 0
+        found_item = item_dict.get(name)
 
-        for key, item in data_dict.items():
-            modified_key = key
+        if not found_item:
+            for key, item in item_dict.items():
+                modified_key = key
+                for ignore in ignore_strings:
+                    modified_key = modified_key.replace(ignore, "")
 
-            for ignore in ignore_strings:
-                modified_key = modified_key.replace(ignore, "")
+                for other in other_strings:
+                    if other in modified_key:
+                        modified_key = modified_key.split(other)[0] + other
+                        break
 
-            for other in other_strings:
-                if other in modified_key:
-                    modified_key = modified_key.split(other)[0] + other
+                if name == modified_key or name in modified_key:
+                    found_item = item
                     break
 
-            score = calculate_similarity(name, modified_key)
-
-            if score > best_score:
-                best_score = score
-                best_match = item
-
-            if name == modified_key or name in modified_key:
-                best_match = item
-                break
-
-        if best_match:
+        if found_item:
             append_data(
-                best_match["id"].lower(),
+                found_item["id"].lower(),
                 len(ordered_data) + 1,
                 ordered_data,
-                best_match,
+                found_item,
             )
-            data_dict.pop(best_match["id"].lower(), None)
+            item_dict.pop(found_item["id"].lower(), None)
 
-    for item_id, item in data_dict.items():
+    for item_id, item in item_dict.items():
         append_data(item_id.lower(), len(ordered_data) + 1, ordered_data, item)
 
     return ordered_data
