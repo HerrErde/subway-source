@@ -34,7 +34,13 @@ async def extract_data(html):
             else (
                 td_elements[2].select_one("b").text.strip()
                 if td_elements[2].select_one("b")
-                else None
+                else (
+                    re.search(r"\[+([^]]+)\]+", td_elements[2].text)
+                    .group(1)
+                    .strip()  # Broken wiki link [[Name]
+                    if "[" in td_elements[2].text and "]" in td_elements[2].text
+                    else None
+                )
             )
         )
 
