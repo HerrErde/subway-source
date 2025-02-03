@@ -139,6 +139,7 @@ def get_scripts(
         ["script/calender.py"],
         ["script/mailbox.py"],
         ["script/achievements.py"],
+        ["script/chainoffers.py"],
         ["misc/sort_characters.py"],
         ["misc/sort_boards.py"],
         ["misc/sort_profile.py"],

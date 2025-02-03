@@ -57,6 +57,7 @@ jobs:
           python script/calender.py
           python script/mailbox.py
           python script/achievements.py
+          python script/chainoffers.py
 
       - name: Update Game Data
         run: |
