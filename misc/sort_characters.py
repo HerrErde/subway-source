@@ -55,12 +55,12 @@ def append_data(item_id, count, ordered_data, item):
 
 
 def sort_json(data, link_names):
-    # Sort and process JSON data based on link names."""
+    # Sort and process JSON data based on link names.
     item_dict = {item["id"].lower(): item for item in data}
     ordered_data = []
 
     for name in link_names:
-        found_item = item_dict.get(name)
+        found_item = item_dict.get(name.lower())  # Direct match by 'id'
 
         if not found_item:
             for key, item in item_dict.items():
@@ -73,7 +73,7 @@ def sort_json(data, link_names):
                         modified_key = modified_key.split(other)[0] + other
                         break
 
-                if name == modified_key or name in modified_key:
+                if name.lower() in modified_key or modified_key in name.lower():
                     found_item = item
                     break
 

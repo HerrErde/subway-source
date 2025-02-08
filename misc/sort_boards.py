@@ -17,12 +17,11 @@ def read_json(file_path):
 
 def normalize_string(input_string):
     # Normalize strings by replacing accented characters with their base counterparts
-    normalized = (
+    return (
         unicodedata.normalize("NFKD", input_string)
         .encode("ASCII", "ignore")
         .decode("utf-8")
     )
-    return normalized
 
 
 def extract(link_data, replace_data):
@@ -33,8 +32,8 @@ def extract(link_data, replace_data):
         name = normalize_string(name)
         for item, replacement in item_replace.items():
             name = name.replace(item, replacement)
-        name = re.sub(r"[^a-zA-Z0-9]", "", name)
-        name = re.sub(r"\bhoverboard\b", "default", name.lower())
+        name = re.sub(r"[^a-zA-Z0-9]", "", name).lower()
+        name = re.sub(r"\bhoverboard\b", "default", name)
         return name
 
     link_names = [
@@ -64,32 +63,41 @@ def append_data(item_id, count, ordered_data, item):
     )
 
 
-def sort_json(data, link_names, ignore_strings):
-    # Sort and write JSON data based on link names
-    item_dict = {}
-
-    # Preprocess items and create a dictionary for fast lookups
-    for item in data:
-        item_id = item["id"].lower()
-        for ignore in ignore_strings:
-            item_id = item_id.replace(ignore, "")
-        item_dict[item_id] = item
-
+def sort_json(data, link_names):
+    item_dict = {item["id"].lower(): item for item in data}
     ordered_data = []
 
-    # Process link names first
+    matched_items = []
     for name in link_names:
-        item = item_dict.pop(name, None)
-        if item:
-            append_data(name, len(ordered_data) + 1, ordered_data, item)
+        found_item = item_dict.get(name)
 
-    # Process remaining items
-    for item_id, item in item_dict.items():
-        append_data(item_id, len(ordered_data) + 1, ordered_data, item)
+        if not found_item:
+            for key, item in item_dict.items():
+                modified_key = key
+                for ignore in ignore_strings:
+                    modified_key = modified_key.replace(ignore, "")
+                if name in modified_key or modified_key in name:
+                    found_item = item
+                    break
 
-    # Write the processed data to the output JSON file
-    with open(json_output, "w", encoding="utf-8") as f:
-        json.dump(ordered_data, f, indent=2)
+        if found_item:
+            append_data(
+                found_item["id"].lower(),
+                len(ordered_data) + 1,
+                ordered_data,
+                found_item,
+            )
+            matched_items.append(found_item["id"].lower())
+
+    remaining_items = [
+        item for item_id, item in item_dict.items() if item_id not in matched_items
+    ]
+    remaining_items.sort(key=lambda x: x["id"].lower())
+
+    for item in remaining_items:
+        append_data(item["id"].lower(), len(ordered_data) + 1, ordered_data, item)
+
+    return ordered_data
 
 
 def main():
@@ -97,8 +105,11 @@ def main():
     replace_data = read_json(replace_file)
     json_data = read_json(json_input)
 
-    link_names = extract(link_data, replace_data)
-    sort_json(json_data, link_names, ignore_strings)
+    extracted_names = extract(link_data, replace_data)
+    ordered_data = sort_json(json_data, extracted_names)
+
+    with open(json_output, "w", encoding="utf-8") as f:
+        json.dump(ordered_data, f, indent=2)
 
 
 if __name__ == "__main__":
