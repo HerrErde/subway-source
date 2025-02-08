@@ -167,6 +167,7 @@ def get_scripts(
 
 def cleanup(nodownload, nocleanup):
     if nocleanup:
+        print("No cleanup")
         return
 
     print("Starting cleanup")
@@ -361,8 +362,7 @@ def main():
     try:
         if args.cleanup:
             cleanup(args.nodownload, args.nocleanup)
-        if not args.nocleanup:
-            cleanup(args.nodownload, args.nocleanup)
+            sys.exit(0)
         setup(args.extract, args.onlydownload)
         run_scripts(
             args.type,

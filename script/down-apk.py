@@ -4,7 +4,6 @@ import sys
 
 import requests
 from bs4 import BeautifulSoup
-from tqdm import tqdm
 
 if len(sys.argv) < 2:
     print(
@@ -115,6 +114,7 @@ try:
         # Open file for writing in binary mode
         with open(file_path, "wb") as file:
             if dlprogress is True:
+                from tqdm import tqdm
 
                 # Initialize tqdm progress bar
                 progress_bar = tqdm(
