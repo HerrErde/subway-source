@@ -61,10 +61,20 @@ def get_session(devmode):
 
 
 def version():
-    url = "https://gplayapi.herrerde.xyz/api/apps/com.kiloo.subwaysurf"
-    response = requests.get(url)
-    data = response.json()
-    return data.get("version", "").replace(".", "-")
+    try:
+        url = "https://gplayapi.herrerde.xyz/api/apps/com.kiloo.subwaysurf"
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for unsuccessful status codes
+        version = response.json().get("version")
+        if version:
+            parts = version.split(".")
+            major, minor = parts[:2]  # Extract major and minor version
+            version = f"{major}.{minor}.0"
+            return version.replace(".", "-")
+        return None
+    except requests.RequestException as e:
+        print(f"Error retrieving app version: {e}")
+        return None
 
 
 def get_rm(nodownload):
