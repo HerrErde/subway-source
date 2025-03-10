@@ -60,24 +60,60 @@ def get_session(devmode):
         sys.exit(1)
 
 
-def version():
+def app_version(type_, latest):
+    try:
+        if type_ == "ipa":
+            version_num = version_ipa(latest)
+        elif type_ == "apk":
+            version_num = version_apk(latest)
+        return version_num
+    except requests.RequestException as e:
+        print(f"Error retrieving app version: {e}")
+        return None
+
+
+def version_apk(latest):
     try:
         url = "https://gplayapi.herrerde.xyz/api/apps/com.kiloo.subwaysurf"
         response = requests.get(url)
-        response.raise_for_status()  # Raise an exception for unsuccessful status codes
+        response.raise_for_status()
         version = response.json().get("version")
         if version:
-            parts = version.split(".")
-            major, minor = parts[:2]  # Extract major and minor version
-            version = f"{major}.{minor}.0"
-            return version.replace(".", "-")
+            if not latest:
+                parts = version.split(".")
+                major, minor = parts[:2]  # Extract major and minor version
+                version = f"{major}.{minor}.0"
+            return version
         return None
     except requests.RequestException as e:
         print(f"Error retrieving app version: {e}")
         return None
 
 
-def get_rm(nodownload):
+def version_ipa(latest):
+    appid = 512939461
+    try:
+        url = f"https://itunes.apple.com/lookup?id={appid}&country=us"
+        response = requests.get(url)
+        response.raise_for_status()
+        results = response.json().get("results", [])
+        if not results:
+            return None
+        version = results[0].get("version")
+        if version:
+            if not latest:
+                parts = version.split(".")
+                major = parts[0]
+                minor = parts[1] if len(parts) > 1 else "0"
+                version = f"{major}.{minor}.0"
+            return version
+        return None
+    except requests.RequestException as e:
+        print(f"Error retrieving app version: {e}")
+        return None
+
+
+def get_rm(runonly):
     rm_file = [
         "*.apk",
         "subwaysurfers-*.zip",
@@ -88,7 +124,7 @@ def get_rm(nodownload):
 
     rm_dir = ["gamedata"]
 
-    if not nodownload:
+    if not runonly:
         ipa_file = "*.ipa"
         rm_file.insert(0, ipa_file)
         tmp_dir = "temp"
@@ -101,7 +137,7 @@ def get_scripts(
     type_,
     version,
     session,
-    nodownload,
+    runonly,
     onlydownload,
     dlprogress,
     limit,
@@ -156,7 +192,7 @@ def get_scripts(
         ["misc/check.py", checkversion],
     ]
 
-    if not nodownload:
+    if not runonly:
         download_script = [
             f"script/down-{type_}.py",
             version,
@@ -175,13 +211,13 @@ def get_scripts(
     return script_list
 
 
-def cleanup(nodownload, nocleanup):
+def cleanup(runonly, nocleanup):
     if nocleanup:
         print("No cleanup")
         return
 
     print("Starting cleanup")
-    rm_file, rm_dir = get_rm(nodownload)
+    rm_file, rm_dir = get_rm(runonly)
 
     try:
         for pattern in rm_file:
@@ -192,7 +228,7 @@ def cleanup(nodownload, nocleanup):
         for directory in rm_dir:
             if os.path.exists(directory):
                 shutil.rmtree(directory)
-        print("Finished cleanup\n")
+        print("Finished cleanup")
     except KeyboardInterrupt:
         print("Cleanup interrupted by user.")
         sys.exit(1)
@@ -204,7 +240,7 @@ def cleanup(nodownload, nocleanup):
 def run_scripts(
     type_,
     version,
-    nodownload,
+    runonly,
     onlydownload,
     dlprogress,
     delay,
@@ -218,7 +254,7 @@ def run_scripts(
     if devmode:
         limit = "5"
 
-    if not nodownload:
+    if not runonly:
         if not session and not type_ == "apk":
             session = get_session(devmode)
 
@@ -226,7 +262,7 @@ def run_scripts(
         type_,
         version,
         session,
-        nodownload,
+        runonly,
         onlydownload,
         dlprogress,
         limit,
@@ -279,7 +315,19 @@ def main():
         help="Choose between type apk and ipa",
     )
     parser.add_argument(
+        "-gv",
+        "--getversion",
+        action="store_true",
+        help="Get the latest version of the game type",
+    )
+    parser.add_argument(
         "-v", "--version", type=str, default=None, help="Choose a specific version"
+    )
+    parser.add_argument(
+        "-l",
+        "--latest",
+        action="store_true",
+        help="Get the latest version of the app (e.g. 4.42.4), or get the latest major and minor (e.g. 4.42.0)",
     )
     parser.add_argument(
         "-c", "--cleanup", action="store_true", help="Run cleanup function only"
@@ -294,10 +342,10 @@ def main():
         help="Download and extract the latest apk/ipa",
     )
     parser.add_argument(
-        "-ndl",
-        "--nodownload",
+        "-run",
+        "--runonly",
         action="store_true",
-        help="Run scripts without downloading the game file (requires pre-downloaded file)",
+        help="Run the scripts without downloading the game file (requires pre-downloaded file)",
     )
     parser.add_argument(
         "-odl",
@@ -309,7 +357,7 @@ def main():
         "-dlp",
         "--dlprogress",
         action="store_true",
-        help="Enables the download progress bar",
+        help="Shows the download progress bar",
     )
     parser.add_argument(
         "-dly",
@@ -348,9 +396,8 @@ def main():
 
     args = parser.parse_args()
 
-    # If version is not provided, set it using the version() function
     if args.version is None:
-        args.version = version()
+        args.version = app_version(args.type, args.latest).replace(".", "-")
 
     # Regex pattern
     version_pattern = r"^\d{1,2}-\d{1,2}-\d{1,2}$"
@@ -370,14 +417,18 @@ def main():
         sys.exit(1)
 
     try:
+        if args.getversion:
+            version = app_version(args.type, args.latest)
+            print(f"Game Type: {args.type}\n{version}")
+            return
         if args.cleanup:
-            cleanup(args.nodownload, args.nocleanup)
-            sys.exit(0)
+            cleanup(args.runonly, args.nocleanup)
+            return
         setup(args.extract, args.onlydownload)
         run_scripts(
             args.type,
             args.version,
-            args.nodownload,
+            args.runonly,
             args.onlydownload,
             args.dlprogress,
             args.delay,
