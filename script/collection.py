@@ -15,7 +15,11 @@ def read_json(file_path):
 
 def extract_items(collection_info):
     return [
-        {"id": item["id"], "type": type_mapping.get(item["type"])}
+        {
+            "id": item["id"],
+            "type": type_mapping.get(item["type"]),
+            "points": item["collectionPoints"],
+        }
         for item in collection_info.get("items", {}).values()
     ]
 
@@ -47,10 +51,15 @@ def main():
         for collection_id, collection_info in seasonal_collections_data.items()
     ]
 
+    meterTiers = len(data["common"]["meterTiers"])
+    meterScore = data["common"]["meterTiers"][-1]["requiredScore"]
+
     output_data = {
         "timeSlot": get_time_slot(data),
         "collections": collections,
         "seasonalCollections": seasonal_collections,
+        "meterTiers": meterTiers,
+        "meterScore": meterScore,
     }
 
     with open(output_file, "w", encoding="utf-8") as file:
