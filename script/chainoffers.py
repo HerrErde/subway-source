@@ -11,24 +11,33 @@ def main():
 
         chainoffers = data.get("chainOffers", [])
 
-        chainoffer = chainoffers[0]
+        chainOffers = []
 
-        timeSlot = chainoffer.get("timeSlot", "")
-        fallbackProductId = chainoffer.get("fallbackProductId", "")
-        homeButton = chainoffer.get("homeButton", {})
-        fallbackReward = chainoffer.get("fallbackReward", {})
-        offers = chainoffer.get("offers", {})
+        for chainoffer in chainoffers:
+            timeSlot = chainoffer.get("timeSlot", "")
+            fallbackProductId = chainoffer.get("fallbackProductId", "")
+            homeButton = chainoffer.get("homeButton", {})
+            fallbackReward = chainoffer.get("fallbackReward", {})
 
+            # Corrected the order: get offers after it's being accessed
+            offers = chainoffer.get("offers", [])
+
+            # Append offers to chainOffers
+            chainOffers.append({
+                "timeSlot": timeSlot,
+                "fallbackProductId": fallbackProductId,
+                "fallbackReward": fallbackReward,
+                "homeButton": homeButton,
+                "offers": offers,
+            })
+
+        # Prepare the output data to be written to the file
         output_data = {
-            "timeSlot": timeSlot,
-            "fallbackProductId": fallbackProductId,
-            "fallbackReward": fallbackReward,
-            "homeButton": homeButton,
-            "offers": offers,
+            "chainOffers": chainOffers,
         }
 
         with open(output_file_path, "w", encoding="utf-8") as f:
-            json.dump(output_data, f, indent=4)
+            json.dump(chainOffers, f, indent=4)
 
     except Exception as e:
         print(f"An error occurred: {str(e)}")
