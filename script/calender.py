@@ -6,7 +6,7 @@ output_file_path = "temp/upload/calendar_data.json"
 with open(input_file_path, "r", encoding="utf-8") as input_file:
     data = json.load(input_file)
     calendars = data.get("calendars", [])
-    calendar_id = calendars[0].get("id")
+    calendar_id = calendars[1].get("id")
 
 output_data = {"calendarId": calendar_id}
 
