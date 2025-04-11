@@ -7,7 +7,6 @@ import requests
 appid = 512939461
 appackage = "com.kiloo.subwaysurfers"
 userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
-appName = "subwaysurfers"
 
 
 if len(sys.argv) < 2:
@@ -151,7 +150,7 @@ def download(version, session, dlprogress):
             download_response.raise_for_status()
             total_size = int(download_response.headers.get("content-length", 0))
 
-            with open(f"temp/{appName}-{version}.ipa", "wb") as file:
+            with open(f"temp/{appackage}-{version}.ipa", "wb") as file:
                 if dlprogress is True:
                     from tqdm import tqdm
 
@@ -172,7 +171,7 @@ def download(version, session, dlprogress):
 
         # Verify file size if content-length header is available
         if total_size > 0:
-            actual_size = os.path.getsize(f"temp/{appName}-{version}.ipa")
+            actual_size = os.path.getsize(f"temp/{appackage}-{version}.ipa")
             if actual_size != total_size:
                 print("File download incomplete. Size mismatch.")
                 sys.exit(1)
