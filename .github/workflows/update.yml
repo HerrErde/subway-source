@@ -42,10 +42,11 @@ jobs:
           python script/fetch_outfits.py
 
       - name: Get latest gamefile
-        run: python script/down-ipa.py ${{steps.var.outputs.version}} ${{ secrets.SESSION }}
+        run: python script/down-apk.py ${{steps.var.outputs.version}}
 
-      - name: Unpack gamefile
-        run: python misc/unpack-ipa.py ${{steps.var.outputs.version}}
+      - name: Get gamedata
+        run: |
+          python misc/get_gamedata.py subway-surfers-${{steps.var.outputs.version}}.apk ${{steps.var.outputs.version}}
 
       - name: Extract Game Data
         run: |
@@ -59,6 +60,7 @@ jobs:
           python script/mailbox.py
           python script/achievements.py
           python script/chainoffers.py
+          python script/promotions.py
 
       - name: Update Game Data
         run: |

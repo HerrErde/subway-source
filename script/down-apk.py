@@ -20,8 +20,8 @@ if not re.match(r"^\d{1,2}-\d{1,2}-\d{1,2}$", appVer):
     )
     sys.exit(1)
 
-dlprogress = sys.argv[2]
 
+dlprogress = sys.argv[2] if len(sys.argv) > 2 else False
 
 userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
 orgName = "sybo-games"
