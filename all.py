@@ -116,7 +116,8 @@ def version_ipa(latest):
 def get_rm(runonly):
     rm_file = [
         "*.apk",
-        "subwaysurfers-*.zip",
+        "*.ipa",
+        "*.zip",
         "*_output.json",
         "*_data_old.json",
         "update.txt",
@@ -172,7 +173,8 @@ def get_scripts(
         ]
 
     script_list = [
-        [f"misc/unpack-{type_}.py", version],
+        # [f"misc/unpack-{type_}.py", version],
+        [f"misc/get_gamedata.py", f"subway-surfers-{version}.{type_}", version],
         ["script/fetch_links.py"],
         ["script/fetch_profile.py"],
         ["script/fetch_outfits.py", limit],
