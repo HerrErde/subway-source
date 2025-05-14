@@ -188,6 +188,7 @@ def get_scripts(
         ["script/mailbox.py"],
         ["script/achievements.py"],
         ["script/chainoffers.py"],
+        ["script/citytours.py"],
         ["misc/sort_characters.py"],
         ["misc/sort_boards.py"],
         ["misc/sort_profile.py"],
