@@ -89,7 +89,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     version = sys.argv[1]
-    app_name = "subwaysurfers"
+    app_name = "subway-surfers"
 
     if not re.match(r"^\d{1,2}-\d{1,2}-\d{1,2}$", version):
         print(
