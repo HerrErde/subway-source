@@ -35,9 +35,9 @@ url = f"https://www.apkmirror.com/apk/{orgName}/{appName}/{appName}-{appVer}-rel
 response = requests.get(url, headers=headers)
 page = response.text
 
-if 'Just a moment...' not in page:
-    print("cloudflare block", file=sys.stderr)
-    sys.exit(1)
+#if 'Just a moment...' not in page:
+#    print("cloudflare block", file=sys.stderr)
+#    sys.exit(1)
 
 if 'class="error404"' in page:
     print("noversion", file=sys.stderr)
