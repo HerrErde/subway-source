@@ -14,24 +14,25 @@ def main():
         chainOffers = []
 
         for chainoffer in chainoffers:
+            id = chainoffer.get("id", "")
             timeSlot = chainoffer.get("timeSlot", "")
             fallbackProductId = chainoffer.get("fallbackProductId", "")
             homeButton = chainoffer.get("homeButton", {})
             fallbackReward = chainoffer.get("fallbackReward", {})
 
-            # Corrected the order: get offers after it's being accessed
             offers = chainoffer.get("offers", [])
 
-            # Append offers to chainOffers
-            chainOffers.append({
-                "timeSlot": timeSlot,
-                "fallbackProductId": fallbackProductId,
-                "fallbackReward": fallbackReward,
-                "homeButton": homeButton,
-                "offers": offers,
-            })
+            chainOffers.append(
+                {
+                    "id": id,
+                    "timeSlot": timeSlot,
+                    "fallbackProductId": fallbackProductId,
+                    "fallbackReward": fallbackReward,
+                    "homeButton": homeButton,
+                    "offers": offers,
+                }
+            )
 
-        # Prepare the output data to be written to the file
         output_data = {
             "chainOffers": chainOffers,
         }
