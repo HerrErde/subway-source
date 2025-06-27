@@ -32,10 +32,14 @@ headers = {
 
 url = f"https://www.apkmirror.com/apk/{orgName}/{appName}/{appName}-{appVer}-release"
 
-response = requests.get(url, headers=headers)
+response = requests.get(url, headers=headers, allow_redirects=True)
 page = response.text
 
-#if 'Just a moment...' not in page:
+if response.status_code == 429:
+    print("ratelimit", file=sys.stderr)
+    sys.exit(1)
+
+# if 'Just a moment...' not in page:
 #    print("cloudflare block", file=sys.stderr)
 #    sys.exit(1)
 
@@ -44,8 +48,13 @@ if 'class="error404"' in page:
     sys.exit(1)
 
 if 'class="apkm-badge">' not in page:
-    print("noapk", file=sys.stderr)
-    sys.exit(1)
+    if ">BUNDLE<" not in page:
+        print("noapk", file=sys.stderr)
+        sys.exit(1)
+    else:
+        apktype = "bundle"
+else:
+    apktype = "apk"
 
 
 soup = BeautifulSoup(page, "html.parser")
@@ -64,22 +73,29 @@ if not table_cell_divs:
 
 # print(f"Found {len(table_cell_divs)} 'table-cell rowheight addseparator expand pad dowrap-break-all' div(s) on the page.")
 
-# Iterate through each found div
 for table_cell_div in table_cell_divs:
-    # Find <span class="apkm-badge"> with text containing "APK" inside the current div
+    if apktype == "apk":
+        badge_text = "APK"
+        badge_class = "apkm-badge"
+    elif apktype == "bundle":
+        badge_text = "BUNDLE"
+        badge_class = "apkm-badge success"
+    else:
+        print("Unknown APK type:", apktype, file=sys.stderr)
+        sys.exit(1)
+
     span_apkm_badge = table_cell_div.find(
-        "span", class_="apkm-badge", string=lambda text: text and "APK" in text
+        "span", class_=badge_class, string=lambda text: text and badge_text in text
     )
 
-    # Find <a class="accent_color"> inside the current div if the required span is found
     if span_apkm_badge:
         a_accent_color = table_cell_div.find("a", class_="accent_color")
         if a_accent_color and "href" in a_accent_color.attrs:
             url1 = a_accent_color["href"]
-            print("APK Download URL:", url1)
-            break  # Stop after finding the first valid APK URL
+            print(f"{badge_text} Download URL:", url1)
+            break
 else:
-    print("Error: APK download URL not found.", file=sys.stderr)
+    print(f"Error: {apktype} download URL not found.", file=sys.stderr)
     sys.exit(1)
 
 
@@ -113,7 +129,11 @@ try:
         # Get total file size from headers
         total_size = int(download_response.headers.get("content-length", 0))
 
-        file_path = f"temp/{appName}-{appVer}.apk"
+        if apktype == "apk":
+            file_path = f"{appName}-{appVer}.apk"
+
+        if apktype == "bundle":
+            file_path = f"{appName}-{appVer}.apkm"
 
         # Open file for writing in binary mode
         with open(file_path, "wb") as file:

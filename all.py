@@ -148,29 +148,21 @@ def get_scripts(
 ):
     skip_list = [script.strip() for script in skip.split(",") if script.strip()]
 
-    if type_ == "apk":
-        session = ""
+    scripts = []
 
     if extract:
-        return [
-            [
-                f"script/down-{type_}.py",
-                version,
-                session,
-                str(dlprogress),
-            ],
-            [f"misc/unpack-{type_}.py", version],
-        ]
+        if type_ == "ipa" and not session:
+            scripts.append(["script/down-ipa.py", version, session, str(dlprogress)])
+        elif type_ == "apk":
+            scripts.append(["script/down-apk.py", version, str(dlprogress)])
+        scripts.append(["misc/unpack-{type_}.py", version])
+        return scripts
 
     if onlydownload:
-        return [
-            [
-                f"script/down-{type_}.py",
-                version,
-                session,
-                str(dlprogress),
-            ]
-        ]
+        if type_ == "ipa" and not session:
+            return [["script/down-ipa.py", version, session, str(dlprogress)]]
+        if type_ == "apk":
+            return [["script/down-apk.py", version, str(dlprogress)]]
 
     script_list = [
         # [f"misc/unpack-{type_}.py", version],
@@ -315,7 +307,7 @@ def main():
         "-t",
         "--type",
         choices=["apk", "ipa"],
-        default="ipa",
+        default="apk",
         help="Choose between type apk and ipa",
     )
     parser.add_argument(
