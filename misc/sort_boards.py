@@ -1,6 +1,7 @@
 import json
 import re
 import unicodedata
+import logging
 
 json_input = "temp/output/boards_output.json"
 json_input_links = "temp/upload/boards_links.json"
@@ -8,6 +9,9 @@ json_output = "temp/upload/boards_data.json"
 replace_file = "replace.json"
 
 ignore_strings = ["nflpa", "sakar"]
+
+
+logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 
 def read_json(file_path):
@@ -53,7 +57,7 @@ def extract(link_data, replace_data):
     return link_names
 
 
-def append_data(item_id, count, ordered_data, item):
+def append_data(count, ordered_data, item):
     ordered_data.append(
         {
             "number": count,
@@ -64,38 +68,55 @@ def append_data(item_id, count, ordered_data, item):
 
 
 def sort_json(data, link_names):
-    item_dict = {item["id"].lower(): item for item in data}
+    def norm_id(s):
+        return re.sub(r"[^a-zA-Z0-9]", "", s).lower()
+
+    def remove_ignores(s):
+        for ignore in ignore_strings:
+            s = s.replace(ignore, "")
+        return s
+
+    item_dict = {norm_id(item["id"]): item for item in data}
     ordered_data = []
+    matched_items = set()
 
-    matched_items = []
-    for name in link_names:
+    for idx, name in enumerate(link_names):
         found_item = item_dict.get(name)
-
+        # fuzzysearch: Exact match after removing ignore_strings
         if not found_item:
             for key, item in item_dict.items():
-                modified_key = key
-                for ignore in ignore_strings:
-                    modified_key = modified_key.replace(ignore, "")
-                if name in modified_key or modified_key in name:
+                key_ohne_ign = remove_ignores(key)
+                if key_ohne_ign == name and key not in matched_items:
                     found_item = item
                     break
-
-        if found_item:
+        # even fuzzier search: Exact match after removing ignore_strings
+        if not found_item:
+            for key, item in item_dict.items():
+                key_ohne_ign = remove_ignores(key)
+                name = remove_ignores(name)
+                if name in key_ohne_ign or key_ohne_ign in name:
+                    if key not in matched_items:
+                        found_item = item
+                        break
+        if found_item and norm_id(found_item["id"]) not in matched_items:
             append_data(
-                found_item["id"].lower(),
                 len(ordered_data) + 1,
                 ordered_data,
                 found_item,
             )
-            matched_items.append(found_item["id"].lower())
+            matched_items.add(norm_id(found_item["id"]))
+            logging.info(f"[{idx+1}] Match: {name} -> {found_item['id']}")
+        else:
+            logging.warning(f"[{idx+1}] No Match für: {name}")
 
+    # append rest items alphabetically
     remaining_items = [
-        item for item_id, item in item_dict.items() if item_id not in matched_items
+        item for item in data if norm_id(item["id"]) not in matched_items
     ]
     remaining_items.sort(key=lambda x: x["id"].lower())
-
     for item in remaining_items:
-        append_data(item["id"].lower(), len(ordered_data) + 1, ordered_data, item)
+        append_data(len(ordered_data) + 1, ordered_data, item)
+        logging.info(f"Rest: {item['id']} gets appended alphabetically.")
 
     return ordered_data
 

@@ -166,7 +166,7 @@ def get_scripts(
 
     script_list = [
         # [f"misc/unpack-{type_}.py", version],
-        [f"misc/get_gamedata.py", f"subway-surfers-{version}.{type_}", version],
+        [f"misc/get_gamedata.py", f"subway-surfers-{version}.{type_}"],
         ["script/fetch_links.py"],
         ["script/fetch_profile.py"],
         ["script/fetch_outfits.py", limit],
