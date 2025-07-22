@@ -9,7 +9,7 @@ async function handleRequest(request) {
     const repo = getRepoFromPath(pathname);
 
     try {
-      const latestRelease = await fetchLatestRelease(repo);
+      const latestRelease = await fetchMajorRelease(repo);
 
       if (!latestRelease) {
         throw new Error('Failed to fetch latest release');
@@ -47,7 +47,7 @@ async function handleRequest(request) {
     const repo = getRepoFromPath(pathname);
 
     try {
-      const latestRelease = await fetchLatestRelease(repo);
+      const latestRelease = await fetchMajorRelease(repo);
 
       if (!latestRelease) {
         throw new Error('Failed to fetch latest release');
@@ -64,7 +64,9 @@ async function handleRequest(request) {
       const formattedReleaseDate = nextReleaseDate.toLocaleString();
 
       const output = {
-        days_count: `${daysUntilNextRelease} days`,
+        days_count: `${daysUntilNextRelease} ${
+          daysUntilNextRelease > 1 ? 'days' : 'day'
+        }`,
         releaseDate: formattedReleaseDate
       };
 
@@ -149,18 +151,20 @@ function getMessageAndColor(timeUntilNextRelease) {
   return { message: closestInterval.message, color: closestInterval.color };
 }
 
-async function fetchLatestRelease(repo) {
+async function fetchMajorRelease(repo) {
   const owner = 'HerrErde';
   const token = 'ghp_';
   const projectname = 'SubwaySurfersApi';
 
   const headers = {
-    'User-Agent': projectname,
-    Authorization: `token ${token}`
+    'User-Agent': projectname
   };
+  if (token) {
+    headers.Authorization = `token ${token}`;
+  }
 
   const response = await fetch(
-    `https://api.github.com/repos/${owner}/${repo}/releases/latest`,
+    `https://api.github.com/repos/${owner}/${repo}/releases`,
     { headers }
   );
 
@@ -168,5 +172,15 @@ async function fetchLatestRelease(repo) {
     return null;
   }
 
-  return response.json();
+  const releases = await response.json();
+
+  // Find the first release with a tag like x.x.0
+  for (const release of releases) {
+    const tag = release.tag_name;
+    if (/^v?\d+\.\d+\.0$/.test(tag)) {
+      return release;
+    }
+  }
+
+  return null;
 }

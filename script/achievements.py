@@ -13,8 +13,13 @@ for _, achievements_data in achievement_data.items():
     objective = achievements_data.get("objective", {})
     id = objective.get("id", "")
     tierGoals = achievements_data.get("tierGoals", [])
+    badgeIconId = achievements_data.get("badgeIconId")
 
-    output_data.append({"id": id, "tierGoals": tierGoals})
+    entry = {"id": id, "tierGoals": tierGoals}
+    if badgeIconId:
+        entry["badgeIconId"] = badgeIconId
+
+    output_data.append(entry)
 
 with open(output_file_path, "w", encoding="utf-8") as output_file:
     json.dump(output_data, output_file, indent=2)
