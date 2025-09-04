@@ -86,7 +86,7 @@ def main():
                     )
 
                     participationRequirement = matching_definition.get(
-                        "participationRequirement", []
+                        "participationRequirement", {}
                     )
                     # print(f"Adding participationRequirement: {participationRequirement}")
 
@@ -109,6 +109,8 @@ def main():
                         "serverId": serverId,
                         "headerTitleKey": headerTitleKey,
                         "rewardUnlockOffset": groupRewardUnlockOffset,
+                        "currentSetEntryID": seasonChallengeSets[0].get("challenges")[0],
+                        "currentSetEntryTimeSlot": seasonChallengeSets[0].get("timeSlot"),
                     }
                 else:
                     print(
