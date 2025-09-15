@@ -182,6 +182,7 @@ def get_scripts(
         ["script/chainoffers.py"],
         ["script/promotions.py"],
         ["script/citytours.py"],
+        ["script/products.py"],
         ["misc/sort_characters.py"],
         ["misc/sort_boards.py"],
         ["misc/sort_profile.py"],

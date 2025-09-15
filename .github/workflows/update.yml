@@ -71,6 +71,7 @@ jobs:
           python script/chainoffers.py
           python script/promotions.py
           python script/citytours.py
+          python script/products.py
 
       - name: Update Game Data
         run: |
