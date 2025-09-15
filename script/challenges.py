@@ -33,6 +33,7 @@ def main():
         challenge_data_output = {}
 
         challenges = data.get("challenges", [])
+        eliteChallenges = data.get("eliteChallenges", {})
         challengeDefinitions = data.get("challengeDefinitions", [])
 
         print(f"Processing season {season_number} challenges...")
@@ -42,8 +43,10 @@ def main():
             challengeId = challenge.get("id", "")
 
             # Check if challengeId starts with the current season
-            if not challengeId.startswith(format_prefix.lower()):
-                # if not challengeId.startswith("dailyChallenge".lower()):
+            if not challengeId.startswith(
+                format_prefix.lower()
+            ) and challengeId not in {"coinChallenge", "dailyChallenge"}:
+
                 print(
                     f"Skipping challenge ID {challengeId} - does not match format {format_prefix}"
                 )
@@ -52,6 +55,9 @@ def main():
             print(f"Found challenge with ID: {challengeId}")
 
             gameMode = challenge.get("gameMode", "")
+            timeSlot = challenge.get("timeSlot", "")
+            skipStageCost = challenge.get("skipStageCost", "")
+            sunsetPeriod = challenge.get("sunsetPeriod", "")
             kind = challenge.get("kind", "")
             targetCity = challenge.get("targetCity", "")
             matchmakingId = challenge.get("matchmakingId", "")
@@ -62,6 +68,7 @@ def main():
             headerTitleKey = ui.get("headerTitleKey", "")
 
             accessRequirement = challenge.get("accessRequirement", [])
+            visibilityRequirement = challenge.get("visibilityRequirement", [])
 
             if seasonChallengeSets and seasonChallengeSets[0].get("challenges"):
                 related_challenge_id = seasonChallengeSets[0]["challenges"][0]
@@ -104,13 +111,21 @@ def main():
                         "kind": kind,
                         "targetCity": targetCity,
                         "accessRequirement": accessRequirement,
+                        "visibilityRequirement": visibilityRequirement,
                         "participationRequirement": participationRequirement,
                         "rewardTiers": rewardTiers,
                         "serverId": serverId,
                         "headerTitleKey": headerTitleKey,
                         "rewardUnlockOffset": groupRewardUnlockOffset,
-                        "currentSetEntryID": seasonChallengeSets[0].get("challenges")[0],
-                        "currentSetEntryTimeSlot": seasonChallengeSets[0].get("timeSlot"),
+                        "currentSetEntryID": seasonChallengeSets[0].get("challenges")[
+                            0
+                        ],
+                        "currentSetEntryTimeSlot": seasonChallengeSets[0].get(
+                            "timeSlot"
+                        ),
+                        "sunsetPeriod": sunsetPeriod,
+                        "timeSlot": timeSlot,
+                        "skipStageCost": skipStageCost,
                     }
                 else:
                     print(
@@ -124,8 +139,13 @@ def main():
                     "accessRequirement": accessRequirement,
                 }
 
+        output_data = {
+            "challenges": challenge_data_output,
+            "eliteChallenges": eliteChallenges,
+        }
+
         with open(output_file_path, "w", encoding="utf-8") as output_file:
-            json.dump(challenge_data_output, output_file, indent=4)
+            json.dump(output_data, output_file, indent=2)
 
     except FileNotFoundError:
         print(f"Error: Input file '{input_file_path}' not found.")
