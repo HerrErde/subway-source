@@ -106,17 +106,19 @@ def main(game_file, version):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python get_gamedata.py <file>")
+        print("Usage: python get_gamedata.py <version>")
         sys.exit(1)
 
-    filename = sys.argv[1]
+    version = sys.argv[1]
+    base_name = f"subway-surfers-{version}"
 
-    pattern = re.compile(r"^([a-zA-Z0-9\-]+?)-(\d+(?:-\d+)+)\.(?:apk|ipa|apkm)[m]?$")
-    match = pattern.match(filename)
-    if match:
-        version = match.group(2)
+    for ext in (".apk", ".apkm", ".xapk", ".apks", ".ipa"):
+        filename = base_name + ext
+        if os.path.exists(filename):
+            break
     else:
-        print("Error: Invalid version format. Use 'X-Y-Z', e.g., '3-12-2'.")
+        print(f"Error: no game file found for version {version}")
         sys.exit(1)
 
+    print(f"Found file: {filename}")
     main(filename, version)

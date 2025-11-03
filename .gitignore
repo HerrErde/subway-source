@@ -3,6 +3,7 @@
 *.zip
 *.apk
 *.ipa
+*.apkm
 .env
 update.txt
 temp/

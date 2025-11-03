@@ -55,7 +55,7 @@ jobs:
 
       - name: Get gamedata
         run: |
-          python misc/get_gamedata.py subway-surfers-${{steps.var.outputs.version}}.apk
+          python misc/get_gamedata.py ${{steps.var.outputs.version}}
 
       - name: Extract Game Data
         run: |
