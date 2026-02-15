@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Optional version input (e.g., 1-0-0 or leave empty for latest)'
+        description: "Optional version input (e.g., 1-0-0 or leave empty for latest)"
         required: false
   repository_dispatch:
     types:
@@ -23,39 +23,72 @@ jobs:
         id: var
         run: |
           packageId="com.kiloo.subwaysurf"
-          echo "packageId=$packageId" >> $GITHUB_OUTPUT
+          gamename="subway-surfers"
+          gameorg="sybo-games"
+          gamemanifest="subway"
+
+          echo "packageId=$packageId" >> "$GITHUB_OUTPUT"
+          echo "gamename=$gamename" >> "$GITHUB_OUTPUT"
+          echo "gameorg=$gameorg" >> "$GITHUB_OUTPUT"
+          echo "gamemanifest=$gamemanifest" >> "$GITHUB_OUTPUT"
+
           if [ -z "${{ github.event.inputs.version }}" ]; then
-            version=$(curl -s "https://gplayapi.herrerde.xyz/api/apps/$packageId" | jq -r '.version' | awk -F '.' '{print $1 "-" $2 "-0"}')
+            version=$(curl -s "https://gplayapi.herrerde.xyz/api/apps/$packageId" | jq -r '.version' | tr '.' '-')
           else
             version=$(echo "${{ github.event.inputs.version }}" | tr '.' '-')
           fi
-          echo "version=$version" >> $GITHUB_OUTPUT
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Create Folder
+        run: mkdir -p temp/upload temp/output
+
+      - name: Cache dependencies
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.x"
+          cache: pip
+
+      - name: Install Playwright
         run: |
-          mkdir -p temp/upload temp/output
+          sudo apt update
+          sudo apt install xvfb 
+          sudo apt install -y \
+            libasound2t64 \
+            libxfixes3 libx11-6 libx11-xcb1 libxcb1 \
+            libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
+            libatk1.0-0 libatk-bridge2.0-0 \
+            libcups2 libdrm2 libxkbcommon0 libnss3 \
+            libpango-1.0-0 libcairo2 libxshmfence1
+          pip install playwright
+          playwright install chromium --with-deps
 
-#      - name: Cache dependencies
-#        uses: actions/setup-python@v5.1.0
-#        with:
-#          python-version: '3.x'
-#          cache: 'pip'
+      - run: pip install -r requirements.txt
 
-      - name: Install
-        run: pip install -r requirements.txt
+      - name: Get latest gamefile
+        run: xvfb-run python script/down-apk_browser.py --org ${{ steps.var.outputs.gameorg }} --app ${{ steps.var.outputs.gamename }} -v ${{steps.var.outputs.version}}
+
+      #- name: Get latest gamefile
+      #  run: python script/down-apk.py --org ${{ steps.var.outputs.gameorg }} --app ${{ steps.var.outputs.gamename }} -v ${{steps.var.outputs.version}}
+
+      - name: Find gamefile
+        id: gamefile
+        run: |
+          for ext in apk apkm; do
+            FILE="${{ steps.var.outputs.gamename }}-${{ steps.var.outputs.version }}.$ext"
+            [ -f "$FILE" ] && echo "PATH=$FILE" >> "$GITHUB_OUTPUT" && exit 0
+          done
+          echo "No APK/APKM found"
+          exit 1
+
+      - name: Get gamedata
+        run: python misc/get_gamedata.py --file ${{ steps.gamefile.outputs.PATH }} -v ${{steps.var.outputs.version}} --output temp/gamedata
 
       - name: Scrape Wiki Data
         run: |
           python script/fetch_links.py
           python script/fetch_profile.py
           python script/fetch_outfits.py
-
-      - name: Get latest gamefile
-        run: python script/down-apk.py ${{steps.var.outputs.version}}
-
-      - name: Get gamedata
-        run: |
-          python misc/get_gamedata.py ${{steps.var.outputs.version}}
 
       - name: Extract Game Data
         run: |
@@ -86,7 +119,7 @@ jobs:
       - name: Upload Data
         uses: softprops/action-gh-release@v2
         with:
-          body_path: 'temp/update.txt'
+          body_path: "temp/update.txt"
           tag_name: ${{steps.var.outputs.version}}
           files: temp/upload/*
         env:

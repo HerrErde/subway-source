@@ -1,176 +1,156 @@
 import os
 import re
 import sys
-
+import hashlib
+import argparse
 import requests
 from bs4 import BeautifulSoup
 
-if len(sys.argv) < 2:
-    print(
-        "Error: Invalid version format. Please use the format 'X-Y-Z' (e.g., '3-12-2')."
-    )
-    sys.exit(1)
-
-
-appVer = sys.argv[1]
-
-if not re.match(r"^\d{1,2}-\d{1,2}-\d{1,2}$", appVer):
-    print(
-        "Error: Invalid version format. Please use the format 'X-Y-Z' (e.g., '3-12-2')."
-    )
-    sys.exit(1)
-
-
-dlprogress = sys.argv[2] if len(sys.argv) > 2 else False
-
-userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
-orgName = "sybo-games"
-appName = "subway-surfers"
-headers = {
-    "User-Agent": userAgent,
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
 }
 
-url = f"https://www.apkmirror.com/apk/{orgName}/{appName}/{appName}-{appVer}-release"
 
-response = requests.get(url, headers=headers, allow_redirects=True)
-page = response.text
-
-if response.status_code == 429:
-    print("ratelimit", file=sys.stderr)
-    sys.exit(1)
-
-# if 'Just a moment...' not in page:
-#    print("cloudflare block", file=sys.stderr)
-#    sys.exit(1)
-
-if 'class="error404"' in page:
-    print("noversion", file=sys.stderr)
-    sys.exit(1)
-
-if 'class="apkm-badge">' not in page:
-    if ">BUNDLE<" not in page:
-        print("noapk", file=sys.stderr)
+def fetch_page(url):
+    response = requests.get(url, headers=HEADERS)
+    if response.status_code == 429:
+        print("Rate limited", file=sys.stderr)
         sys.exit(1)
-    else:
-        apktype = "bundle"
-else:
-    apktype = "apk"
+    if response.status_code != 200:
+        print(f"Failed to fetch {url} ({response.status_code})", file=sys.stderr)
+        sys.exit(1)
+    return BeautifulSoup(response.text, "html.parser")
 
 
-soup = BeautifulSoup(page, "html.parser")
-
-# Find all <div> elements with class "table-cell rowheight addseparator expand pad dowrap-break-all"
-table_cell_divs = soup.find_all(
-    "div", class_="table-cell rowheight addseparator expand pad dowrap-break-all"
-)
-
-if not table_cell_divs:
-    print(
-        "Error: Required div 'table-cell rowheight addseparator expand pad dowrap-break-all' not found.",
-        file=sys.stderr,
+def get_apk_download_page(soup, apk_type):
+    table_divs = soup.find_all(
+        "div", class_="table-cell rowheight addseparator expand pad dowrap-break-all"
     )
-    sys.exit(1)
-
-# print(f"Found {len(table_cell_divs)} 'table-cell rowheight addseparator expand pad dowrap-break-all' div(s) on the page.")
-
-for table_cell_div in table_cell_divs:
-    if apktype == "apk":
-        badge_text = "APK"
-        badge_class = "apkm-badge"
-    elif apktype == "bundle":
-        badge_text = "BUNDLE"
-        badge_class = "apkm-badge success"
-    else:
-        print("Unknown APK type:", apktype, file=sys.stderr)
+    if not table_divs:
+        print("No download entries found.", file=sys.stderr)
         sys.exit(1)
 
-    span_apkm_badge = table_cell_div.find(
-        "span", class_=badge_class, string=lambda text: text and badge_text in text
+    badge_text = "APK" if apk_type == "apk" else "BUNDLE"
+    badge_class = "apkm-badge" if apk_type == "apk" else "apkm-badge success"
+
+    for div in table_divs:
+        badge = div.find(
+            "span", class_=badge_class, string=lambda t: t and badge_text in t
+        )
+        if badge:
+            a_tag = div.find("a", class_="accent_color")
+            if a_tag and a_tag.get("href"):
+                return a_tag["href"]
+
+    print(f"{apk_type} download URL not found.", file=sys.stderr)
+    sys.exit(1)
+
+
+def get_download_links(download_page_url):
+    soup = fetch_page(download_page_url)
+
+    download_btn = soup.find("a", class_="downloadButton")
+    if not download_btn or not download_btn.get("href"):
+        print("Download link not found.", file=sys.stderr)
+        sys.exit(1)
+
+    url2 = download_btn["href"]
+
+    safe_div = soup.find("div", id="safeDownload")
+    if not safe_div:
+        print("SHA-256 hash not found.", file=sys.stderr)
+        sys.exit(1)
+    sha256 = safe_div.find_all("span", class_="wordbreak-all")[-1].text.strip()
+    return url2, sha256
+
+
+def sha256_verify(file_path, expected_hash):
+    if not os.path.exists(file_path):
+        return False
+    h = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            h.update(chunk)
+    return h.hexdigest().lower() == expected_hash.lower()
+
+
+def download_file(url, file_path):
+    response = requests.get(url, headers=HEADERS, stream=True)
+    response.raise_for_status()
+    total_size = int(response.headers.get("content-length", 0))
+
+    with open(file_path, "wb") as f:
+        f.write(response.content)
+
+
+def download(args):
+    version_url = f"https://www.apkmirror.com/apk/{args.org}/{args.app}/{args.app}-{args.version}-release"
+    soup = fetch_page(version_url)
+
+    apktype = (
+        "apk"
+        if 'class="apkm-badge">' in str(soup)
+        else ("bundle" if ">BUNDLE<" in str(soup) else None)
+    )
+    if not apktype:
+        print("No APK or bundle found on page.", file=sys.stderr)
+        sys.exit(1)
+
+    url1 = get_apk_download_page(soup, apktype)
+    download_page_url = f"https://www.apkmirror.com{url1}"
+
+    url2, sha256 = get_download_links(download_page_url)
+    final_download_page = f"https://www.apkmirror.com{url2}"
+
+    soup = fetch_page(final_download_page)
+    link_tag = soup.select_one("#download-link")
+    if not link_tag or not link_tag.get("href"):
+        print("Final download link not found.", file=sys.stderr)
+        sys.exit(1)
+    apk_url = f"https://www.apkmirror.com{link_tag['href']}"
+
+    file_path = args.output or (
+        f"{args.app}-{args.version}.apk"
+        if apktype == "apk"
+        else f"{args.app}-{args.version}.apkm"
     )
 
-    if span_apkm_badge:
-        a_accent_color = table_cell_div.find("a", class_="accent_color")
-        if a_accent_color and "href" in a_accent_color.attrs:
-            url1 = a_accent_color["href"]
-            print(f"{badge_text} Download URL:", url1)
-            break
-else:
-    print(f"Error: {apktype} download URL not found.", file=sys.stderr)
-    sys.exit(1)
+    if sha256_verify(file_path, sha256):
+        print(f"File '{file_path}' already exists and SHA-256 verified.")
+        return
+
+    download_file(apk_url, file_path)
+
+    if not sha256_verify(file_path, sha256):
+        print("SHA-256 mismatch! File may be corrupt or tampered.", file=sys.stderr)
+        sys.exit(1)
+
+    print(f"Download completed successfully: {file_path}")
 
 
-response = requests.get(f"https://www.apkmirror.com{url1}", headers=headers)
-page2 = response.text
-url2 = BeautifulSoup(page2, "html.parser").select_one(
-    'a:-soup-contains("Download APK")'
-)["href"]
+def main():
+    parser = argparse.ArgumentParser(
+        description="Download APK or bundle from APKMirror"
+    )
+    parser.add_argument("--org", required=True, help="Organization (e.g., sybo-games)")
+    parser.add_argument("--app", required=True, help="App name (e.g., subway-surfers)")
+    parser.add_argument("-v", "--version", required=True, help="Version (X-Y-Z)")
+    parser.add_argument("-o", "--output", help="Output file path")
+    args = parser.parse_args()
 
-if not url2:
-    print("error", file=sys.stderr)
-    sys.exit(1)
+    if not re.match(r"^\d{1,2}-\d{1,2}-\d{1,2}$", args.version):
+        print("Invalid version format. Use X-Y-Z (e.g., 3-57-0).", file=sys.stderr)
+        sys.exit(1)
 
-response = requests.get(f"https://www.apkmirror.com{url2}", headers=headers)
-page3 = response.text
-url3 = BeautifulSoup(page3, "html.parser").select_one("#download-link")["href"]
+    try:
+        download(args)
+    except KeyboardInterrupt:
+        print("Script terminated by user.", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
-if not url3:
-    print("error", file=sys.stderr)
-    sys.exit(1)
 
-apk_url = f"https://www.apkmirror.com{url3}"
-print(apk_url, file=sys.stderr)
-
-try:
-    download_response = requests.get(apk_url, headers=headers)
-    download_response.raise_for_status()
-
-    if download_response.status_code == 200:
-
-        # Get total file size from headers
-        total_size = int(download_response.headers.get("content-length", 0))
-
-        if apktype == "apk":
-            file_path = f"{appName}-{appVer}.apk"
-
-        if apktype == "bundle":
-            file_path = f"{appName}-{appVer}.apkm"
-
-        # Open file for writing in binary mode
-        with open(file_path, "wb") as file:
-            if dlprogress is True:
-                from tqdm import tqdm
-
-                # Initialize tqdm progress bar
-                progress_bar = tqdm(
-                    total=total_size,
-                    unit="B",
-                    unit_scale=True,
-                    unit_divisor=1024,
-                    desc="Downloading",
-                )
-
-                # Write file in chunks and update progress bar
-                for chunk in download_response.iter_content(chunk_size=8192):
-                    if chunk:  # Filter out keep-alive new chunks
-                        file.write(chunk)
-                        progress_bar.update(len(chunk))
-
-                progress_bar.close()
-            else:
-                print("Downloading...")
-                file.write(download_response.content)
-
-    # Verify file size if content-length header is available
-    if total_size > 0:
-        actual_size = os.path.getsize(file_path)
-        if actual_size != total_size:
-            print("File download incomplete. Size mismatch.")
-            sys.exit(1)
-
-        print("Download successful.")
-    else:
-        print("Failed to download the file.")
-
-except requests.exceptions.HTTPError:
-    print(f"Error fetching version information: {response.status_code}")
-    sys.exit(1)
+if __name__ == "__main__":
+    main()

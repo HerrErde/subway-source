@@ -11,9 +11,7 @@ import requests
 
 
 def setup(extract, onlydownload):
-    if extract:
-        os.makedirs("temp", exist_ok=True)
-    if onlydownload:
+    if extract or onlydownload:
         os.makedirs("temp", exist_ok=True)
     else:
         os.makedirs("temp/output", exist_ok=True)
@@ -60,11 +58,13 @@ def get_session(devmode):
         sys.exit(1)
 
 
-def app_version(type_, latest):
+def app_version(apptype, latest):
     try:
-        if type_ == "ipa":
+        if apptype == "ipa":
+            print("Cheking ios app version")
             version_num = version_ipa(latest)
-        elif type_ == "apk":
+        elif apptype == "apk":
+            print("Cheking android app version")
             version_num = version_apk(latest)
         return version_num
     except requests.RequestException as e:
@@ -135,12 +135,12 @@ def get_rm(runonly):
 
 
 def get_scripts(
-    type_,
+    apptype,
     version,
+    experiment,
     session,
     runonly,
     onlydownload,
-    dlprogress,
     limit,
     checkversion,
     extract,
@@ -151,22 +151,79 @@ def get_scripts(
     scripts = []
 
     if extract:
-        if type_ == "ipa" and not session:
-            scripts.append(["script/down-ipa.py", version, session, str(dlprogress)])
-        elif type_ == "apk":
-            scripts.append(["script/down-apk.py", version, str(dlprogress)])
-        scripts.append(["misc/unpack-{type_}.py", version])
+        if apptype == "ipa" and not session:
+            scripts.append(["script/down-ipa.py", version, session])
+        elif apptype == "apk":
+            scripts.append(
+                [
+                    "script/down-apk.py",
+                    "--org",
+                    "sybo-games",
+                    "--app",
+                    "subway-surfers",
+                    "-v",
+                    version,
+                ]
+            )
+
+        # scripts.append([f"misc/unpack-{apptype}.py", version, "subway-surfers"])
+        ext = "ipa" if apptype == "ipa" else "apk"
+
+        scripts.append(
+            [
+                "misc/get_gamedata.py",
+                "-f",
+                f"subway-surfers-{version}.{ext}",
+                "-v",
+                version,
+                "--output",
+                "temp/gamedata",
+            ]
+        )
+        if experiment:
+            scripts.append(f"-ex {experiment}")
+
         return scripts
 
     if onlydownload:
-        if type_ == "ipa" and not session:
-            return [["script/down-ipa.py", version, session, str(dlprogress)]]
-        if type_ == "apk":
-            return [["script/down-apk.py", version, str(dlprogress)]]
+        if apptype == "ipa" and not session:
+            download_script = [
+                "script/down-ipa.py",
+                version,
+                session,
+            ]
 
-    script_list = [
-        # [f"misc/unpack-{type_}.py", version],
-        [f"misc/get_gamedata.py", version],
+        if apptype == "apk":
+            download_script = [
+                "script/down-apk.py",
+                "--org",
+                "sybo-games",
+                "--app",
+                "subway-surfers",
+                "-v",
+                version,
+            ]
+
+        return [download_script]
+
+    script_list = []
+
+    gamedata_script = [
+        "misc/get_gamedata.py",
+        "-f",
+        f"subway-surfers-{version}.apk",
+        "-v",
+        version,
+        "--output",
+        "temp/gamedata",
+    ]
+
+    if experiment:
+        gamedata_script.extend(["-ex", experiment])
+
+    script_list.append(gamedata_script)
+
+    other_scripts = [
         ["script/fetch_links.py"],
         ["script/fetch_profile.py"],
         ["script/fetch_outfits.py", limit],
@@ -189,13 +246,22 @@ def get_scripts(
         ["misc/check.py", checkversion],
     ]
 
+    script_list.extend(other_scripts)
+
     if not runonly:
-        download_script = [
-            f"script/down-{type_}.py",
-            version,
-            session,
-            str(dlprogress),
-        ]
+        if apptype == "ipa" and not session:
+            download_script = ["script/down-ipa.py", version, session]
+        if apptype == "apk":
+            download_script = [
+                "script/down-apk.py",
+                "--org",
+                "sybo-games",
+                "--app",
+                "subway-surfers",
+                "-v",
+                version,
+            ]
+
         script_list.insert(0, download_script)
 
     # Filter out skipped scripts
@@ -234,48 +300,38 @@ def cleanup(runonly, nocleanup):
         sys.exit(1)
 
 
-def run_scripts(
-    type_,
-    version,
-    runonly,
-    onlydownload,
-    dlprogress,
-    delay,
-    session,
-    devmode,
-    checkversion,
-    extract,
-    skip,
-):
+def run_scripts(args):
     limit = "0"
-    if devmode:
+    if args.devmode:
         limit = "5"
 
-    if not runonly:
-        if not session and not type_ == "apk":
-            session = get_session(devmode)
+    if not args.runonly:
+        if not args.session and not args.type == "apk":
+            session = get_session(args.devmode)
 
     scripts = get_scripts(
-        type_,
-        version,
-        session,
-        runonly,
-        onlydownload,
-        dlprogress,
+        args.type,
+        args.version,
+        args.experiment,
+        args.session,
+        args.runonly,
+        args.onlydownload,
         limit,
-        checkversion,
-        extract,
-        skip,
+        args.checkversion,
+        args.extract,
+        args.skip,
     )
 
     try:
-        print(f"Choosing type: {type_}")
-        print(f"Choosing version: {version}\n")
+        print(f"Choosing type: {args.type}")
+        print(f"Choosing version: {args.version}")
+        if args.experiment:
+            print(f"Choosing Experiment: {args.experiment}\n")
         for index, script in enumerate(scripts):
             print(f"Running {script[0]}...")
             if script[0].startswith("script/down-ipa.py"):
                 result = subprocess.run(
-                    ["python"] + script,
+                    [sys.executable] + script,
                     capture_output=True,
                     text=True,
                     check=True,
@@ -287,12 +343,12 @@ def run_scripts(
                     sys.exit(1)
 
             else:
-                subprocess.run(["python"] + script, check=True)
+                subprocess.run([sys.executable] + script, check=True)
                 print(f"Finished running {script[0]}.")
 
             # Sleep only if this is not the last script
             if index < len(scripts) - 1:
-                time.sleep(delay)
+                time.sleep(args.delay)
                 print("\n")
     except Exception as e:
         print(f"Error occurred while running script: {e}")
@@ -321,6 +377,13 @@ def main():
         "-v", "--version", type=str, default=None, help="Choose a specific version"
     )
     parser.add_argument(
+        "-ex",
+        "--experiment",
+        type=str,
+        default="",
+        help="Add a version experiemnt",
+    )
+    parser.add_argument(
         "-l",
         "--latest",
         action="store_true",
@@ -345,22 +408,16 @@ def main():
         help="Run the scripts without downloading the game file (requires pre-downloaded file)",
     )
     parser.add_argument(
-        "-odl",
+        "-dl",
         "--onlydownload",
         action="store_true",
         help="Only downloads the gamefile",
     )
     parser.add_argument(
-        "-dlp",
-        "--dlprogress",
-        action="store_true",
-        help="Shows the download progress bar",
-    )
-    parser.add_argument(
-        "-dly",
+        "-d",
         "--delay",
         type=int,
-        default=5,
+        default=3,
         help="Change the delay between the running scripts",
     )
     parser.add_argument(
@@ -422,19 +479,7 @@ def main():
             cleanup(args.runonly, args.nocleanup)
             return
         setup(args.extract, args.onlydownload)
-        run_scripts(
-            args.type,
-            args.version,
-            args.runonly,
-            args.onlydownload,
-            args.dlprogress,
-            args.delay,
-            args.session,
-            args.devmode,
-            args.checkversion,
-            args.extract,
-            args.skip,
-        )
+        run_scripts(args)
 
     except Exception as e:
         print("Error:", e)
