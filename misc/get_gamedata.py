@@ -49,7 +49,12 @@ def read_secret(game_file, internal_path, apkm=False):
 
 
 def get_manifest(
-    game: str, manifest_secret: str, version: str, platform: str, experiment: str = None
+    game: str,
+    manifest_secret: str,
+    version: str,
+    platform: str,
+    experiment: str = None,
+    manifest_path: str = None,
 ):
     experiment_path = f"/{experiment}" if experiment else ""
     url = f"{manifest_api_url}/v1.0/{game}/{version}/{platform}/{manifest_secret}{experiment_path}/manifest.json"
@@ -57,6 +62,14 @@ def get_manifest(
         r = client.get(url, headers=headers)
         r.raise_for_status()
         manifest = r.json()
+        if manifest_path:
+            dest_path = os.path.join(manifest_path, "manifest.json")
+            os.makedirs(manifest_path, exist_ok=True)
+
+            with open(dest_path, "w", encoding="utf-8") as f:
+                json.dump(manifest, f, indent=2)
+
+            return
         return manifest.get("gamedata")
 
 
@@ -134,8 +147,6 @@ def get_gamedata(args):
     elif args.platform:
         # secret-only mode
         platform = args.platform
-    else:
-        sys.exit("Error: either --file or --platform is required")
 
     # read secret from file if needed
     if args.file and not args.secret:
@@ -153,16 +164,17 @@ def get_gamedata(args):
 
     version = version.replace("-", ".")
 
+    manifest_path = None
+    if args.manifest:
+        manifest_path = output_path
+
     gamedata_secret = get_manifest(
-        args.game,
-        args.secret,
-        version,
-        platform,
-        args.experiment,
+        args.game, args.secret, version, platform, args.experiment, manifest_path
     )
 
-    objects = get_objects(args.game, gamedata_secret)
-    download_all_files(args.game, gamedata_secret, objects, output_path)
+    if args.gamedata:
+        objects = get_objects(args.game, gamedata_secret)
+        download_all_files(args.game, gamedata_secret, objects, output_path)
 
 
 def main():
@@ -178,14 +190,12 @@ def main():
     parser.add_argument("-p", "--platform", type=str, default="android")
 
     parser.add_argument(
-        "-g",
         "--gamedata",
         action="store_true",
         help="Gets the gamedata files",
     )
 
     parser.add_argument(
-        "-m",
         "--manifest",
         action="store_true",
         help="Gets the Manifest",
@@ -229,12 +239,15 @@ def main():
             )
             sys.exit(1)
 
-    if args.gamedata and args.manifest:
+    if not args.file and not args.platform:
         print(
-            "Error: Only either --gamedata or --manifest must be provided",
+            "Error: either --file or --platform is required",
             file=sys.stderr,
         )
         sys.exit(1)
+
+    if not args.gamedata and not args.manifest:
+        args.gamedata = True
 
     try:
         get_gamedata(args)
