@@ -16,6 +16,13 @@ jobs:
     permissions:
       contents: read
 
+    services:
+      byparr:
+        image: ghcr.io/flaresolverr/flaresolverr:latest
+        ports:
+          - 8191:8191
+        options: --shm-size=2gb
+
     steps:
       - uses: actions/checkout@v4
 
@@ -86,9 +93,11 @@ jobs:
 
       - name: Scrape Wiki Data
         run: |
-          python script/fetch_links.py
-          python script/fetch_profile.py
-          python script/fetch_outfits.py
+          python script/fetch_links_browser.py
+          python script/fetch_profile_browser.py
+      #   python script/fetch_links.py
+      #   python script/fetch_profile.py
+      #   python script/fetch_outfits.py
 
       - name: Extract Game Data
         run: |
