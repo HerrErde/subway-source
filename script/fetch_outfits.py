@@ -1,11 +1,19 @@
 import json
 import sys
 
-import requests
 from bs4 import BeautifulSoup
 
 input_file_path = "temp/upload/characters_links.json"
 output_file_path = "temp/upload/characters_outfit.json"
+
+
+def create_cf_session():
+    from curl_cffi.requests import Session
+
+    return Session(impersonate="chrome131")
+
+
+SESSION = create_cf_session()
 
 
 def load_data(file_path):
@@ -111,11 +119,10 @@ def fetch_data(session, entry):
 def process_entries(data, limit):
     output = []
     try:
-        with requests.Session() as session:
-            for entry in data[:limit]:
-                data = fetch_data(session, entry)
-                if data is not None:
-                    output.append(data)
+        for entry in data[:limit]:
+            data = fetch_data(SESSION, entry)
+            if data is not None:
+                output.append(data)
     except Exception as e:
         print("Error:", e)
     except KeyboardInterrupt:

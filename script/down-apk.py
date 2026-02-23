@@ -3,16 +3,20 @@ import re
 import sys
 import hashlib
 import argparse
-import requests
 from bs4 import BeautifulSoup
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36"
-}
+
+def create_cf_session():
+    from curl_cffi.requests import Session
+
+    return Session(impersonate="chrome")
+
+
+SESSION = create_cf_session()
 
 
 def fetch_page(url):
-    response = requests.get(url, headers=HEADERS)
+    response = SESSION.get(url)
     if response.status_code == 429:
         print("Rate limited", file=sys.stderr)
         sys.exit(1)
@@ -56,12 +60,39 @@ def get_download_links(download_page_url):
 
     url2 = download_btn["href"]
 
-    safe_div = soup.find("div", id="safeDownload")
-    if not safe_div:
+    # Find the correct <h4>
+    target_h4 = None
+    for h4 in soup.find_all("h4"):
+        if h4.get_text(strip=True) in (
+            "APK file hashes",
+            "APK bundle file hashes",
+        ):
+            target_h4 = h4
+            break
+
+    if not target_h4:
+        print("Hash section not found.", file=sys.stderr)
+        sys.exit(1)
+
+    sha256_hash = None
+
+    # Traverse everything after the <h4>
+    for element in target_h4.find_all_next():
+        if element.name == "h4":
+            break
+
+        if element.name == "span" and "wordbreak-all" in element.get("class", []):
+            text = element.get_text(strip=True)
+
+            if re.fullmatch(r"[a-fA-F0-9]{64}", text):
+                sha256_hash = text
+                break
+
+    if not sha256_hash:
         print("SHA-256 hash not found.", file=sys.stderr)
         sys.exit(1)
-    sha256 = safe_div.find_all("span", class_="wordbreak-all")[-1].text.strip()
-    return url2, sha256
+
+    return url2, sha256_hash
 
 
 def sha256_verify(file_path, expected_hash):
@@ -75,23 +106,30 @@ def sha256_verify(file_path, expected_hash):
 
 
 def download_file(url, file_path):
-    response = requests.get(url, headers=HEADERS, stream=True)
+    response = SESSION.get(url, stream=True)
     response.raise_for_status()
-    total_size = int(response.headers.get("content-length", 0))
 
     with open(file_path, "wb") as f:
-        f.write(response.content)
+        for chunk in response.iter_content(chunk_size=262144):
+            if chunk:
+                f.write(chunk)
 
 
 def download(args):
     version_url = f"https://www.apkmirror.com/apk/{args.org}/{args.app}/{args.app}-{args.version}-release"
     soup = fetch_page(version_url)
 
-    apktype = (
-        "apk"
-        if 'class="apkm-badge">' in str(soup)
-        else ("bundle" if ">BUNDLE<" in str(soup) else None)
-    )
+    page = str(soup)
+
+    if not args.apktype:
+        apktype = (
+            "apk"
+            if 'class="apkm-badge">' in page
+            else "bundle" if ">BUNDLE<" in page else None
+        )
+    else:
+        apktype = args.apktype
+
     if not apktype:
         print("No APK or bundle found on page.", file=sys.stderr)
         sys.exit(1)
@@ -136,6 +174,11 @@ def main():
     parser.add_argument("--app", required=True, help="App name (e.g., subway-surfers)")
     parser.add_argument("-v", "--version", required=True, help="Version (X-Y-Z)")
     parser.add_argument("-o", "--output", help="Output file path")
+    parser.add_argument(
+        "--apktype",
+        choices=["apk", "bundle"],
+        help="The apk type",
+    )
     args = parser.parse_args()
 
     if not re.match(r"^\d{1,2}-\d{1,2}-\d{1,2}$", args.version):

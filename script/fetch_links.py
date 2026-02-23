@@ -4,13 +4,20 @@ import re
 import sys
 
 import aiofiles
-import aiohttp
 from bs4 import BeautifulSoup
+
+
+def create_cf_session():
+    from curl_cffi.requests import Session
+
+    return Session(impersonate="chrome")
+
+
+SESSION = create_cf_session()
 
 
 async def extract_character_data(html):
     soup = BeautifulSoup(html, "html.parser")
-    print("Table loaded!")
 
     data = []
     number = 1
@@ -83,7 +90,6 @@ async def extract_character_data(html):
 
 async def extract_board_data(html):
     soup = BeautifulSoup(html, "html.parser")
-    print("Table loaded!")
 
     data = []
     number = 1
@@ -159,16 +165,18 @@ async def extract_board_data(html):
     return data
 
 
-async def fetch_data(session, url, json_file, type):
+async def fetch_data(url, json_file, type):
     try:
-        async with session.get(url) as response:
-            response.raise_for_status()
-            html = await response.text(encoding="utf-8")
-            if type == 1:
-                data = await extract_character_data(html)
-            elif type == 2:
-                data = await extract_board_data(html)
-    except aiohttp.ClientError as e:
+        response = await asyncio.to_thread(SESSION.get, url, timeout=60)
+        response.raise_for_status()
+        html = response.text
+        if type == 1:
+            data = await extract_character_data(html)
+        elif type == 2:
+            data = await extract_board_data(html)
+        else:
+            data = []
+    except Exception as e:
         print(f"An error occurred fetching data from {url}: {e}")
         data = []
 
@@ -179,25 +187,22 @@ async def fetch_data(session, url, json_file, type):
 async def main():
     tasks = []
 
-    async with aiohttp.ClientSession() as session:
-        tasks.append(
-            fetch_data(
-                session,
-                "https://subwaysurf.fandom.com/wiki/Characters",
-                "temp/upload/characters_links.json",
-                1,
-            )
+    tasks.append(
+        fetch_data(
+            "https://subwaysurf.fandom.com/wiki/Characters",
+            "temp/upload/characters_links.json",
+            1,
         )
-        tasks.append(
-            fetch_data(
-                session,
-                "https://subwaysurf.fandom.com/wiki/Hoverboard",
-                "temp/upload/boards_links.json",
-                2,
-            )
+    )
+    tasks.append(
+        fetch_data(
+            "https://subwaysurf.fandom.com/wiki/Hoverboard",
+            "temp/upload/boards_links.json",
+            2,
         )
+    )
 
-        await asyncio.gather(*tasks)
+    await asyncio.gather(*tasks)
 
 
 if __name__ == "__main__":

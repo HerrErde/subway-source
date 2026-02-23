@@ -6,3 +6,4 @@ python-dotenv==1.0.1
 rapidfuzz==3.12.2
 Requests==2.32.3
 httpx[http2]==0.28.1
+curl_cffi

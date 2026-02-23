@@ -1,6 +1,5 @@
 import json
 
-import requests
 from bs4 import BeautifulSoup
 
 url = "https://subwaysurf.fandom.com/wiki/Player_Profile"
@@ -8,9 +7,17 @@ url = "https://subwaysurf.fandom.com/wiki/Player_Profile"
 filename = "temp/upload/playerprofile_links.json"
 
 
+def create_cf_session():
+    from curl_cffi.requests import Session
+
+    return Session(impersonate="chrome")
+
+
+SESSION = create_cf_session()
+
 def fetch_data(url):
     try:
-        response = requests.get(url)
+        response = SESSION.get(url)
         response.raise_for_status()
         data = response.text
         return data
@@ -20,7 +27,7 @@ def fetch_data(url):
 
 
 def get_id(h3_title):
-    response = requests.get(url)
+    response = SESSION.get(url)
     response.raise_for_status()
 
     soup = BeautifulSoup(response.text, "html.parser")
