@@ -10,6 +10,19 @@
   },
   "Characters": {
     "Super Runner Fernando": "fernando",
-    "J Balvin": "musician"
+    "J Balvin": "musician",
+    "8 Ball Jake": "eightBallJake",
+    "Dynamike": "bsBeardedGuy",
+    "Piper": "bsElegantGirl",
+    "Max": "bsFastGirl",
+    "Poco": "bsSkullGuy",
+    "Spike": "bsPointyGuy",
+    "El Primo": "bsToughGuy",
+    "Crewmate Jake": "amongUsRed",
+    "Crewmate Tricky": "amongUsYellow",
+    "Crewmate Spike": "amongUsBlack",
+    "Crewmate Tasha": "amongUsRose",
+    "Crewmate King": "amongUsCyan",
+    "Crewmate Guard": "amongUsGreen"
   }
 }

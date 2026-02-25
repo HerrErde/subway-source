@@ -1,7 +1,6 @@
 import json
 import re
 import unicodedata
-import logging
 
 json_input = "temp/output/boards_output.json"
 json_input_links = "temp/upload/boards_links.json"
@@ -9,9 +8,6 @@ json_output = "temp/upload/boards_data.json"
 replace_file = "replace.json"
 
 ignore_strings = ["nflpa", "sakar"]
-
-
-logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 
 def read_json(file_path):
@@ -43,7 +39,6 @@ def extract(link_data, replace_data):
     link_names = [
         process_name(item.get("name", ""))
         for item in link_data
-        if item.get("available", True)
     ]
 
     # Replace birthdays in link names
@@ -105,9 +100,9 @@ def sort_json(data, link_names):
                 found_item,
             )
             matched_items.add(norm_id(found_item["id"]))
-            logging.info(f"[{idx+1}] Match: {name} -> {found_item['id']}")
+            print(f"[{idx+1}] Match: {name} -> {found_item['id']}")
         else:
-            logging.warning(f"[{idx+1}] No Match für: {name}")
+            print(f"[{idx+1}] No Match für: {name}")
 
     # append rest items alphabetically
     remaining_items = [
@@ -116,7 +111,7 @@ def sort_json(data, link_names):
     remaining_items.sort(key=lambda x: x["id"].lower())
     for item in remaining_items:
         append_data(len(ordered_data) + 1, ordered_data, item)
-        logging.info(f"Rest: {item['id']} gets appended alphabetically.")
+        print(f"Rest: {item['id']} gets appended alphabetically.")
 
     return ordered_data
 

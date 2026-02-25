@@ -8,3 +8,5 @@
 update.txt
 temp/
 test/
+.venv
+__pycache__
