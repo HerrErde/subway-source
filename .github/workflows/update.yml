@@ -49,6 +49,8 @@ jobs:
           python-version: "3.x"
           cache: pip
 
+      - run: pip install -r requirements.txt
+
       - name: Get latest gamefile
         run: python script/down-apk.py --org ${{ steps.var.outputs.gameorg }} --app ${{ steps.var.outputs.gamename }} -v ${{steps.var.outputs.version}}
 
