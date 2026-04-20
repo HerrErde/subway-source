@@ -10,7 +10,7 @@ output_file_path = "temp/upload/characters_outfit.json"
 def create_cf_session():
     from curl_cffi.requests import Session
 
-    return Session(impersonate="chrome131")
+    return Session(impersonate="chrome")
 
 
 SESSION = create_cf_session()
