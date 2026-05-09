@@ -1,6 +1,6 @@
 import json
-import os
 import re
+from pathlib import Path
 
 input_file = "temp/gamedata/collections.json"
 output_file = "temp/upload/collections_data.json"
@@ -33,11 +33,14 @@ def get_time_slot(data):
 
 
 def main():
-    if not os.path.exists(input_file):
+    input_path = Path(input_file)
+    output_path = Path(output_file)
+
+    if not input_path.exists():
         print(f"Error: Input file '{input_file}' not found.")
         return
 
-    data = read_json(input_file)
+    data = read_json(input_path)
     collections_data = data.get("collections", {})
     seasonal_collections_data = data.get("seasonalCollections", {})
 
@@ -51,8 +54,9 @@ def main():
         for collection_id, collection_info in seasonal_collections_data.items()
     ]
 
-    meterTiers = len(data["common"]["meterTiers"])
-    meterScore = data["common"]["meterTiers"][-1]["requiredScore"]
+    meter_tiers = data.get("common", {}).get("meterTiers", [])
+    meterTiers = len(meter_tiers)
+    meterScore = meter_tiers[-1].get("requiredScore") if meter_tiers else None
 
     output_data = {
         "timeSlot": get_time_slot(data),
@@ -62,7 +66,8 @@ def main():
         "meterScore": meterScore,
     }
 
-    with open(output_file, "w", encoding="utf-8") as file:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as file:
         json.dump(output_data, file, indent=2)
 
 

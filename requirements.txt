@@ -1,9 +1,10 @@
 aiofiles==24.1.0
 aiohttp==3.11.13
 beautifulsoup4==4.13.3
-colorama==0.4.6
 python-dotenv==1.0.1
 rapidfuzz==3.12.2
-Requests==2.32.3
-httpx[http2]==0.28.1
+Requests
+httpx[http2]
 curl_cffi
+unitypy
+pycryptodome

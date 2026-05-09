@@ -3,33 +3,37 @@ import json
 input_file_path = "temp/gamedata/boards.json"
 output_file_path = "temp/output/boards_output.json"
 
-with open(input_file_path) as file:
-    json_data = json.load(file)
 
-names = list(json_data["boards"].keys())
+def normalize_id(value):
+    if not isinstance(value, str) or not value:
+        return None
+    return value.replace(" ", "")
 
-# Create a list to store the extracted data
-extracted_data = []
 
-# Loop through each item name
-for name in names:
-    print("Item Name:", name)
+def main():
+    with open(input_file_path, "r", encoding="utf-8") as file:
+        json_data = json.load(file)
 
-    data = json_data["boards"].get(name, {})
+    boards = json_data.get("boards", {})
+    extracted_data = []
 
-    item_id = data.get("id")
+    for name, data in boards.items():
+        print("Item Name:", name)
+        item_id = normalize_id(data.get("id"))
+        if item_id is None:
+            continue
 
-    # Extract upgrades if available, otherwise set as null
-    upgrades = [
-        (
-            {"id": upgrade.get("id").replace(" ", "")}
-            if "name" not in upgrade and " " not in upgrade.get("id")
-            else {"id": upgrade.get("id").replace(" ", "")}
-        )
-        for upgrade in data.get("upgrades", [])
-    ] or None
+        upgrades = []
+        for upgrade in data.get("upgrades", []) or []:
+            upgrade_id = normalize_id(upgrade.get("id"))
+            if upgrade_id is not None:
+                upgrades.append({"id": upgrade_id})
 
-    extracted_data.append({"id": item_id.replace(" ", ""), "upgrades": upgrades})
+        extracted_data.append({"id": item_id, "upgrades": upgrades or None})
 
-with open(output_file_path, "w", encoding="utf-8") as file:
-    json.dump(extracted_data, file, indent=2)
+    with open(output_file_path, "w", encoding="utf-8") as file:
+        json.dump(extracted_data, file, indent=2)
+
+
+if __name__ == "__main__":
+    main()

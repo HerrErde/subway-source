@@ -1,21 +1,60 @@
 import argparse
-import glob
-import os
 import re
 import shutil
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import requests
+
+VERSION_RE = re.compile(r"^\d{1,2}-\d{1,2}-\d{1,2}$")
+
+
+def resolve_android_gamefile(file_path):
+    file_path = Path(file_path)
+    if file_path.exists():
+        return str(file_path)
+
+    if file_path.suffix.lower() in [".apk", ".apkm", ".xapk"]:
+        for candidate_ext in [".apk", ".apkm", ".xapk"]:
+            candidate = file_path.with_suffix(candidate_ext)
+            if candidate.exists():
+                return str(candidate)
+
+    return str(file_path)
+
+
+def rewrite_script_file_args(scripts):
+    detected = {}
+
+    for script in scripts:
+        if "-f" not in script:
+            continue
+
+        try:
+            file_idx = script.index("-f") + 1
+            original_file = script[file_idx]
+        except (ValueError, IndexError):
+            continue
+
+        if original_file in detected:
+            script[file_idx] = detected[original_file]
+            continue
+
+        resolved_file = resolve_android_gamefile(original_file)
+        detected[original_file] = resolved_file
+        script[file_idx] = resolved_file
+
+    return scripts
 
 
 def setup(extract, onlydownload):
     if extract or onlydownload:
-        os.makedirs("temp", exist_ok=True)
+        Path("temp").mkdir(parents=True, exist_ok=True)
     else:
-        os.makedirs("temp/output", exist_ok=True)
-        os.makedirs("temp/upload", exist_ok=True)
+        Path("temp/output").mkdir(parents=True, exist_ok=True)
+        Path("temp/upload").mkdir(parents=True, exist_ok=True)
 
 
 def get_session(devmode):
@@ -61,10 +100,10 @@ def get_session(devmode):
 def app_version(apptype, latest):
     try:
         if apptype == "ipa":
-            print("Cheking ios app version")
+            print("Checking ios app version")
             version_num = version_ipa(latest)
-        elif apptype == "apk":
-            print("Cheking android app version")
+        elif apptype in {"apk", "apkm"}:
+            print("Checking android app version")
             version_num = version_apk(latest)
         return version_num
     except requests.RequestException as e:
@@ -148,123 +187,106 @@ def get_scripts(
 ):
     skip_list = [script.strip() for script in skip.split(",") if script.strip()]
 
-    scripts = []
+    ext = "ipa" if apptype == "ipa" else ("apkm" if apptype == "apkm" else "apk")
+
+    android_download_script = [
+        "script/down-apk.py",
+        "--org",
+        "sybo-games",
+        "--app",
+        "subway-surfers",
+        "-v",
+        version,
+    ]
+    if apptype == "apkm":
+        android_download_script.append("--apkm")
 
     if extract:
-        if apptype == "ipa" and not session:
+        scripts = []
+
+        if apptype == "ipa":
             scripts.append(["script/down-ipa.py", version, session])
-        elif apptype == "apk":
-            scripts.append(
-                [
-                    "script/down-apk.py",
-                    "--org",
-                    "sybo-games",
-                    "--app",
-                    "subway-surfers",
-                    "-v",
-                    version,
-                ]
-            )
+        elif apptype in ["apk", "apkm"]:
+            scripts.append(android_download_script)
 
-        # scripts.append([f"misc/unpack-{apptype}.py", version, "subway-surfers"])
-        ext = "ipa" if apptype == "ipa" else "apk"
+        gamedata_script = [
+            "misc/get_gamedata.py",
+            "-f",
+            f"subway-surfers-{version}.{ext}",
+            "-v",
+            version,
+            "--output",
+            "temp/gamedata",
+        ]
 
-        scripts.append(
-            [
-                "misc/get_gamedata.py",
-                "-f",
-                f"subway-surfers-{version}.{ext}",
-                "-v",
-                version,
-                "--output",
-                "temp/gamedata",
-            ]
-        )
         if experiment:
-            scripts.append(f"-ex {experiment}")
+            gamedata_script.extend(["-ex", experiment])
 
+        scripts.append(gamedata_script)
         return scripts
 
     if onlydownload:
-        if apptype == "ipa" and not session:
-            download_script = [
-                "script/down-ipa.py",
-                version,
-                session,
-            ]
-
-        if apptype == "apk":
-            download_script = [
-                "script/down-apk.py",
-                "--org",
-                "sybo-games",
-                "--app",
-                "subway-surfers",
-                "-v",
-                version,
-            ]
-
-        return [download_script]
+        if apptype == "ipa":
+            return [["script/down-ipa.py", version, session]]
+        elif apptype in ["apk", "apkm"]:
+            return [android_download_script]
 
     script_list = []
+
+    if not runonly:
+        if apptype == "ipa":
+            script_list.append(["script/down-ipa.py", version, session])
+        elif apptype in ["apk", "apkm"]:
+            script_list.append(android_download_script)
 
     gamedata_script = [
         "misc/get_gamedata.py",
         "-f",
-        f"subway-surfers-{version}.apk",
+        f"subway-surfers-{version}.{ext}",
         "-v",
         version,
         "--output",
         "temp/gamedata",
     ]
-
     if experiment:
         gamedata_script.extend(["-ex", experiment])
 
     script_list.append(gamedata_script)
 
-    other_scripts = [
-        ["script/fetch_links.py"],
-        ["script/fetch_profile.py"],
-        ["script/fetch_outfits.py", limit],
-        ["script/fetch_characters.py"],
-        ["script/fetch_boards.py"],
-        ["script/playerprofile.py"],
-        ["script/userstats.py"],
-        ["script/collection.py"],
-        ["script/challenges.py"],
-        ["script/calender.py"],
-        ["script/mailbox.py"],
-        ["script/achievements.py"],
-        ["script/chainoffers.py"],
-        ["script/promotions.py"],
-        ["script/citytours.py"],
-        ["script/products.py"],
-        ["misc/sort_characters.py"],
-        ["misc/sort_boards.py"],
-        ["misc/sort_profile.py"],
-        ["misc/check.py", checkversion],
-    ]
+    script_list.extend(
+        [
+            [
+                "script/fetch_locale.py",
+                "-f",
+                f"subway-surfers-{version}.{ext}",
+                "-l",
+                "en",
+                "--output",
+                "temp/output/en_locale.json",
+            ],
+            ["script/fetch_links.py"],
+            ["script/fetch_profile.py"],
+            ["script/fetch_outfits.py", limit],
+            ["script/fetch_characters.py"],
+            ["script/fetch_boards.py"],
+            ["script/playerprofile.py"],
+            ["script/userstats.py"],
+            ["script/collection.py"],
+            ["script/challenges.py"],
+            ["script/calender.py"],
+            ["script/mailbox.py"],
+            ["script/achievements.py"],
+            ["script/chainoffers.py"],
+            ["script/promotions.py"],
+            ["script/citytours.py"],
+            ["script/products.py"],
+            ["misc/sort_characters.py"],
+            ["misc/sort_boards.py"],
+            ["misc/sort_profile.py"],
+            ["misc/check.py", checkversion],
+        ]
+    )
 
-    script_list.extend(other_scripts)
-
-    if not runonly:
-        if apptype == "ipa" and not session:
-            download_script = ["script/down-ipa.py", version, session]
-        if apptype == "apk":
-            download_script = [
-                "script/down-apk.py",
-                "--org",
-                "sybo-games",
-                "--app",
-                "subway-surfers",
-                "-v",
-                version,
-            ]
-
-        script_list.insert(0, download_script)
-
-    # Filter out skipped scripts
     script_list = [
         script
         for script in script_list
@@ -284,13 +306,14 @@ def cleanup(runonly, nocleanup):
 
     try:
         for pattern in rm_file:
-            for file in glob.glob(pattern):
-                if os.path.exists(file):
-                    os.remove(file)
+            for file_path in Path(".").glob(pattern):
+                if file_path.is_file():
+                    file_path.unlink()
 
         for directory in rm_dir:
-            if os.path.exists(directory):
-                shutil.rmtree(directory)
+            directory_path = Path(directory)
+            if directory_path.exists():
+                shutil.rmtree(directory_path)
         print("Finished cleanup")
     except KeyboardInterrupt:
         print("Cleanup interrupted by user.")
@@ -300,20 +323,24 @@ def cleanup(runonly, nocleanup):
         sys.exit(1)
 
 
+def run_script(script):
+    subprocess.run([sys.executable, *script], check=True)
+
+
 def run_scripts(args):
     limit = "0"
     if args.devmode:
         limit = "5"
 
-    if not args.runonly:
-        if not args.session and not args.type == "apk":
-            session = get_session(args.devmode)
+    session = args.session
+    if not args.runonly and args.type == "ipa" and not session:
+        session = get_session(args.devmode)
 
     scripts = get_scripts(
         args.type,
         args.version,
         args.experiment,
-        args.session,
+        session,
         args.runonly,
         args.onlydownload,
         limit,
@@ -322,29 +349,19 @@ def run_scripts(args):
         args.skip,
     )
 
+    scripts = rewrite_script_file_args(scripts)
+
     try:
         print(f"Choosing type: {args.type}")
         print(f"Choosing version: {args.version}")
+        if args.checkversion:
+            print(f"Will compare against: {args.checkversion}")
         if args.experiment:
             print(f"Choosing Experiment: {args.experiment}\n")
         for index, script in enumerate(scripts):
             print(f"Running {script[0]}...")
-            if script[0].startswith("script/down-ipa.py"):
-                result = subprocess.run(
-                    [sys.executable] + script,
-                    capture_output=True,
-                    text=True,
-                    check=True,
-                )
-
-                output = result.stdout.strip()
-                print(output)
-                if "quota" in output.lower():
-                    sys.exit(1)
-
-            else:
-                subprocess.run([sys.executable] + script, check=True)
-                print(f"Finished running {script[0]}.")
+            run_script(script)
+            print(f"Finished running {script[0]}.")
 
             # Sleep only if this is not the last script
             if index < len(scripts) - 1:
@@ -363,15 +380,9 @@ def main():
     parser.add_argument(
         "-t",
         "--type",
-        choices=["apk", "ipa"],
+        choices=["apk", "apkm", "ipa"],
         default="apk",
-        help="Choose between type apk and ipa",
-    )
-    parser.add_argument(
-        "-gv",
-        "--getversion",
-        action="store_true",
-        help="Get the latest version of the game type",
+        help="Choose between type apk, apkm and ipa",
     )
     parser.add_argument(
         "-v", "--version", type=str, default=None, help="Choose a specific version"
@@ -451,30 +462,25 @@ def main():
     args = parser.parse_args()
 
     if args.version is None:
-        args.version = app_version(args.type, args.latest).replace(".", "-")
+        resolved_version = app_version(args.type, args.latest)
+        if not resolved_version:
+            print("Error: Could not determine the app version.")
+            sys.exit(1)
+        args.version = resolved_version.replace(".", "-")
 
-    # Regex pattern
-    version_pattern = r"^\d{1,2}-\d{1,2}-\d{1,2}$"
-
-    # Validate 'version'
-    if args.version and not re.match(version_pattern, args.version):
+    if args.version and not VERSION_RE.match(args.version):
         print(
             "Error: 'version' has the wrong format. Please use the format 'X-Y-Z' (e.g., '3-12-2')."
         )
         sys.exit(1)
 
-    # Validate 'checkversion'
-    if args.checkversion and not re.match(version_pattern, args.checkversion):
+    if args.checkversion and not VERSION_RE.match(args.checkversion):
         print(
             "Error: 'checkversion' has the wrong format. Please use the format 'X-Y-Z' (e.g., '3-12-2')."
         )
         sys.exit(1)
 
     try:
-        if args.getversion:
-            version = app_version(args.type, args.latest)
-            print(f"Game Type: {args.type}\n{version}")
-            return
         if args.cleanup:
             cleanup(args.runonly, args.nocleanup)
             return

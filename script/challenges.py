@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 
 input_file_path = "temp/gamedata/challenges.json"
@@ -8,16 +9,22 @@ collections_file_path = "temp/upload/collections_data.json"
 
 
 def read_json(file_path):
-    with open(file_path, "r") as file:
+    with open(file_path, "r", encoding="utf-8") as file:
         return json.load(file)
 
 
+def extract_season_number(time_slot):
+    match = re.search(r"_S(\d+)", time_slot or "")
+    if not match:
+        raise ValueError(f"Unable to determine season from timeSlot: {time_slot!r}")
+    return int(match.group(1))
+
+
 def season():
-    with open(collections_file_path, "r") as input_file:
+    with open(collections_file_path, "r", encoding="utf-8") as input_file:
         data = json.load(input_file)
         timeslot = data.get("timeSlot", "")
-        season = int(timeslot.split("_S")[1])
-    return season
+        return extract_season_number(timeslot)
 
 
 def main():
@@ -47,9 +54,7 @@ def main():
                 format_prefix.lower()
             ) and challengeId not in {"coinChallenge", "dailyChallenge"}:
 
-                print(
-                    f"Skipping challenge ID {challengeId} - does not match format {format_prefix}"
-                )
+                # print(f"Skipping challenge ID {challengeId} - does not match format {format_prefix}")
                 continue
 
             print(f"Found challenge with ID: {challengeId}")
@@ -72,9 +77,7 @@ def main():
 
             if seasonChallengeSets and seasonChallengeSets[0].get("challenges"):
                 related_challenge_id = seasonChallengeSets[0]["challenges"][0]
-                print(
-                    f"Related challenge ID from seasonChallengeSets: {related_challenge_id}"
-                )
+                print(f"Related challenge: {related_challenge_id}")
 
                 # Find the corresponding definition
                 matching_definition = next(
@@ -88,9 +91,7 @@ def main():
                 )
 
                 if matching_definition:
-                    print(
-                        f"Match found for related challenge ID {related_challenge_id}"
-                    )
+                    print(f"Found related challenge: {related_challenge_id}")
 
                     participationRequirement = matching_definition.get(
                         "participationRequirement", {}

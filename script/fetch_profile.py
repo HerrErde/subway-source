@@ -15,64 +15,58 @@ def create_cf_session():
 
 SESSION = create_cf_session()
 
+
 def fetch_data(url):
     try:
         response = SESSION.get(url)
         response.raise_for_status()
-        data = response.text
-        return data
+        return BeautifulSoup(response.text, "html.parser")
     except Exception as e:
         print("Error fetching HTML:", e)
         return None
 
 
-def get_id(h3_title):
-    response = SESSION.get(url)
-    response.raise_for_status()
-
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    # Find <h3> tags and check their <span> children
+def get_id(soup, h3_title):
     for h3_tag in soup.find_all("h3"):
         span_tag = h3_tag.find("span")
-        if span_tag.get_text(strip=True) == h3_title:
-            # Find the next <div> tag after the <h3> tag
+        if span_tag and span_tag.get_text(strip=True) == h3_title:
             next_div = h3_tag.find_next_sibling("div")
             if next_div:
-                # Return the 'id' attribute of the <div> tag if it exists
-                return next_div.get(
-                    "id", "The <div> tag does not have an id attribute."
-                )
-            else:
-                return "No <div> tag found after the <h3> tag."
+                return next_div.get("id")
 
-    return "No <h3> tag with the specified text found."
+    return None
 
 
-def fetch_profile(html):
+def fetch_profile(soup):
     try:
-        gallery_id = get_id("Profile Portraits")
+        gallery_id = get_id(soup, "Profile Portraits")
+        if not gallery_id:
+            return []
 
-        soup = BeautifulSoup(html, "html.parser")
         gallery_div = soup.find("div", id=gallery_id)
+        if gallery_div is None:
+            return []
 
         items = gallery_div.find_all("div", class_="wikia-gallery-item")
         profiles = []
 
         for item in items:
-            img_tag = item.find("div", class_="gallery-image-wrapper").find("img")
+            image_wrapper = item.find("div", class_="gallery-image-wrapper")
+            img_tag = image_wrapper.find("img") if image_wrapper else None
             if img_tag:
                 img_src = img_tag.get("data-src", "") or img_tag.get("src", "")
                 img_src = img_src.split(".png")[0] + ".png"
 
-                # Fetch the title from the anchor tag within the lightbox-caption div
                 lightbox_caption_div = item.find("div", class_="lightbox-caption")
-                if lightbox_caption_div:
-                    profile_name = item.find(
-                        "div", class_="lightbox-caption"
-                    ).text.strip()
-                    profile_name = profile_name.split(" profile portrait")[0]
-                    profile_name = profile_name.split(" outfit")[0]
+                if lightbox_caption_div is None:
+                    continue
+
+                profile_name = lightbox_caption_div.get_text(strip=True)
+                if not profile_name:
+                    continue
+
+                profile_name = profile_name.split(" profile portrait")[0]
+                profile_name = profile_name.split(" outfit")[0]
 
                 profiles.append({"name": profile_name, "img_url": img_src})
                 print("Profile Name:", profile_name)
@@ -84,22 +78,31 @@ def fetch_profile(html):
         return []
 
 
-def fetch_frame(html):
+def fetch_frame(soup):
     try:
-        gallery_id = get_id("Frames")
+        gallery_id = get_id(soup, "Frames")
+        if not gallery_id:
+            return []
 
-        soup = BeautifulSoup(html, "html.parser")
         gallery_div = soup.find("div", id=gallery_id)
+        if gallery_div is None:
+            return []
 
         items = gallery_div.find_all("div", class_="wikia-gallery-item")
         frames = []
 
         for item in items:
-            img_tag = item.find("div", class_="gallery-image-wrapper").find("img")
+            image_wrapper = item.find("div", class_="gallery-image-wrapper")
+            img_tag = image_wrapper.find("img") if image_wrapper else None
             if img_tag:
                 img_src = img_tag.get("data-src", "") or img_tag.get("src", "")
                 img_src = img_src.split(".png")[0] + ".png"
-                frame_name = item.find("div", class_="lightbox-caption").text.strip()
+                caption = item.find("div", class_="lightbox-caption")
+                if caption is None:
+                    continue
+                frame_name = caption.get_text(strip=True)
+                if not frame_name:
+                    continue
                 frame_name = frame_name.split("frame (")[0].strip()
                 frames.append({"name": frame_name, "img_url": img_src})
                 print("Frame Name:", frame_name)
@@ -119,10 +122,10 @@ def save_json(portraits, frames):
 
 
 def main():
-    data = fetch_data(url)
-    if data:
-        portraits = fetch_profile(data)
-        frames = fetch_frame(data)
+    soup = fetch_data(url)
+    if soup:
+        portraits = fetch_profile(soup)
+        frames = fetch_frame(soup)
         save_json(portraits, frames)
     else:
         print("Failed to fetch HTML. Exiting...")

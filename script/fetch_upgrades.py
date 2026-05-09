@@ -11,7 +11,7 @@ output_file_path = "temp/upload/boards_upgrades.json"
 def create_cf_session():
     from curl_cffi.requests import Session
 
-    return Session(impersonate="chrome131")
+    return Session(impersonate="chrome")
 
 
 SESSION = create_cf_session()
@@ -40,7 +40,6 @@ def fetch_content(session, url):
 
 
 def extract_data(tabber_div, names):
-    # Find all tab content divs within the tabber_div
     tab_content_divs = tabber_div.find_all("div", class_="wds-tab__content")
     data = []
 
@@ -90,37 +89,41 @@ def fetch_data(session, entry):
         print("Error: Tabber div not found in infobox table.")
         return {"name": entry["name"], "upgrades": None}
 
-    tbody_elements = infobox_table.select("tbody")
-
-    tr_elements = tbody_elements[0].select("tr")
+    tbody = infobox_table.find("tbody")
+    if tbody is not None:
+        tr_elements = tbody.find_all("tr")
+    else:
+        tr_elements = []
 
     if len(tr_elements) > 9:
         names = []
 
         target_tr = tr_elements[9]
-        second_td = target_tr.find_all("td")[1]
+        td_cells = target_tr.find_all("td")
+        if len(td_cells) < 2:
+            names = []
+        else:
+            second_td = td_cells[1]
 
-        a_tags = target_tr.select("a")
-        for a in a_tags:
-            title = a.get("title")
-            content = a.get_text(strip=True)
-            if title and title not in ["Key", "Event Coin", "Shells"]:
-                names.append(content)
-            else:
-                continue
+            a_tags = target_tr.select("a")
+            for a in a_tags:
+                title = a.get("title")
+                content = a.get_text(strip=True)
+                if title and title not in ["Key", "Event Coin", "Shells"]:
+                    names.append(content)
 
-        process = not a_tags or any(
-            a.get_text(strip=True) not in ["Key", "Event Coin", "Shells"]
-            for a in a_tags
-        )
+            process = not a_tags or any(
+                a.get_text(strip=True) not in ["Key", "Event Coin", "Shells"]
+                for a in a_tags
+            )
 
-        if process:
-            td_content = second_td.get_text(separator="\n", strip=True).split("\n")
+            if process:
+                td_content = second_td.get_text(separator="\n", strip=True).split("\n")
 
-            for line in td_content:
-                line = line.strip()
-                if line and not line.isdigit():
-                    names.append(line)
+                for line in td_content:
+                    line = line.strip()
+                    if line and not line.isdigit():
+                        names.append(line)
 
     else:
         names = []

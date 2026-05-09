@@ -165,14 +165,14 @@ async def extract_board_data(html):
     return data
 
 
-async def fetch_data(url, json_file, type):
+async def fetch_data(url, json_file, data_type):
     try:
         response = await asyncio.to_thread(SESSION.get, url, timeout=60)
         response.raise_for_status()
         html = response.text
-        if type == 1:
+        if data_type == 1:
             data = await extract_character_data(html)
-        elif type == 2:
+        elif data_type == 2:
             data = await extract_board_data(html)
         else:
             data = []
@@ -181,7 +181,7 @@ async def fetch_data(url, json_file, type):
         data = []
 
     async with aiofiles.open(json_file, "w", encoding="utf-8") as file:
-        await file.write(json.dumps(data, indent=2, ensure_ascii=False))
+        await file.write(json.dumps(data, indent=2))
 
 
 async def main():

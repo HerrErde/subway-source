@@ -46,10 +46,13 @@ jobs:
       - name: Cache dependencies
         uses: actions/setup-python@v6.2.0
         with:
-          python-version: "3.x"
-          cache: pip
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
-      - run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Get latest gamefile
         run: python script/down-apk.py --org ${{ steps.var.outputs.gameorg }} --app ${{ steps.var.outputs.gamename }} -v ${{steps.var.outputs.version}}
@@ -75,6 +78,7 @@ jobs:
 
       - name: Extract Game Data
         run: |
+          python script/fetch_locale.py -f ${{ steps.gamefile.outputs.PATH }} -l en --output temp/output/en_locale.json
           python script/fetch_characters.py
           python script/fetch_boards.py
           python script/playerprofile.py
