@@ -134,9 +134,7 @@ def build_link_order_ids(link_data, products_data, locale_data):
         if not isinstance(original_name, str) or not original_name:
             continue
 
-        if item.get("available") is False:
-            ordered.append(([], original_name))
-            continue
+        is_unavailable = item.get("available") is False
 
         k = keyify(original_name)
         candidates: List[str] = []
@@ -161,25 +159,14 @@ def build_link_order_ids(link_data, products_data, locale_data):
 
 
 def sort_json(data, link_ids):
-    item_dict = {item["id"]: item for item in data}
+    item_dict = {keyify(item["id"]): item for item in data}
     ordered_data = []
 
     for candidate_ids, original_name in link_ids:
-        if not candidate_ids:
-            ordered_data.append(
-                {
-                    "number": len(ordered_data) + 1,
-                    "id": None,
-                    "outfits": None,
-                }
-            )
-            print(f"[{len(ordered_data)}] Unavailable: {original_name}")
-            continue
-
-        key = next((c for c in candidate_ids if c in item_dict), None)
+        key = next((c for c in candidate_ids if keyify(c) in item_dict), None)
 
         if key is not None:
-            entry = item_dict.pop(key)
+            entry = item_dict.pop(keyify(key))
             print(f"[{len(ordered_data) + 1}] Match: {entry['id']} -> {original_name}")
             ordered_data.append(
                 {
@@ -189,14 +176,15 @@ def sort_json(data, link_ids):
                 }
             )
         else:
+            fallback_id = candidate_ids[0] if candidate_ids else original_name
             print(
                 f"[{len(ordered_data) + 1}] No match for link: "
-                f"{original_name} (internal {candidate_ids[0]})"
+                f"{original_name} (using {fallback_id})"
             )
             ordered_data.append(
                 {
                     "number": len(ordered_data) + 1,
-                    "id": None,
+                    "id": fallback_id,
                     "outfits": None,
                 }
             )

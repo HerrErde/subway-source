@@ -94,18 +94,33 @@ def fetch_frame(soup):
         for item in items:
             image_wrapper = item.find("div", class_="gallery-image-wrapper")
             img_tag = image_wrapper.find("img") if image_wrapper else None
-            if img_tag:
-                img_src = img_tag.get("data-src", "") or img_tag.get("src", "")
-                img_src = img_src.split(".png")[0] + ".png"
-                caption = item.find("div", class_="lightbox-caption")
-                if caption is None:
-                    continue
-                frame_name = caption.get_text(strip=True)
-                if not frame_name:
-                    continue
-                frame_name = frame_name.split("frame (")[0].strip()
-                frames.append({"name": frame_name, "img_url": img_src})
-                print("Frame Name:", frame_name)
+            if not img_tag:
+                continue
+
+            img_src = img_tag.get("data-src", "") or img_tag.get("src", "")
+            img_src = img_src.split(".png")[0] + ".png"
+
+            caption = item.find("div", class_="lightbox-caption")
+            if caption is None:
+                continue
+
+            name_link = caption.find("a")
+            if name_link is None:
+                continue
+
+            frame_name = name_link.get_text(strip=True)
+
+            if not frame_name:
+                continue
+
+            frames.append(
+                {
+                    "name": frame_name,
+                    "img_url": img_src,
+                }
+            )
+
+            print("Frame Name:", frame_name)
 
         return frames
 
