@@ -298,6 +298,7 @@ if __name__ == "__main__":
     version = None
     if len(sys.argv) > 1:
         version = sys.argv[1]
+        version = version.replace(".", "-")
 
     product_names = load_product_names(products_file)
     locale_data = load_locale(locale_file)

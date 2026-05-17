@@ -134,8 +134,6 @@ def build_link_order_ids(link_data, products_data, locale_data):
         if not isinstance(original_name, str) or not original_name:
             continue
 
-        is_unavailable = item.get("available") is False
-
         k = keyify(original_name)
         candidates: List[str] = []
 
@@ -161,12 +159,25 @@ def build_link_order_ids(link_data, products_data, locale_data):
 def sort_json(data, link_ids):
     item_dict = {keyify(item["id"]): item for item in data}
     ordered_data = []
+    matched_items = set()
 
     for candidate_ids, original_name in link_ids:
-        key = next((c for c in candidate_ids if keyify(c) in item_dict), None)
+        matched_dict_key = None
+        for c in candidate_ids:
+            k_c = keyify(c)
+            if k_c in item_dict:
+                matched_dict_key = k_c
+                break
+            for dict_key in item_dict:
+                if dict_key.startswith(k_c) or k_c.startswith(dict_key):
+                    matched_dict_key = dict_key
+                    break
+            if matched_dict_key:
+                break
 
-        if key is not None:
-            entry = item_dict.pop(keyify(key))
+        if matched_dict_key is not None:
+            entry = item_dict.pop(matched_dict_key)
+            matched_items.add(keyify(entry["id"]))
             print(f"[{len(ordered_data) + 1}] Match: {entry['id']} -> {original_name}")
             ordered_data.append(
                 {
@@ -188,6 +199,19 @@ def sort_json(data, link_ids):
                     "outfits": None,
                 }
             )
+
+    # append rest items alphabetically
+    remaining_items = [item for item in data if keyify(item["id"]) not in matched_items]
+    remaining_items.sort(key=lambda x: x["id"].lower())
+    for item in remaining_items:
+        ordered_data.append(
+            {
+                "number": len(ordered_data) + 1,
+                "id": item["id"],
+                "outfits": item.get("outfits"),
+            }
+        )
+        print(f"Rest: {item['id']} gets appended alphabetically.")
 
     return ordered_data
 

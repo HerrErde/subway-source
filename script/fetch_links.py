@@ -22,51 +22,50 @@ async def extract_character_data(html):
     data = []
     number = 1
 
-    tr_elements = soup.select("table.article-table tr")
+    tables = soup.select("table.article-table")
+    char_table = None
+
+    for table in tables:
+        header_row = table.select("tr th, tr td:first-child")
+        headers = [h.get_text(strip=True).lower() for h in header_row[:5]]
+        if any(h in headers for h in ["character", "name", "image", "color"]):
+            char_table = table
+            break
+
+    if not char_table:
+        char_table = tables[0] if tables else None
+
+    tr_elements = char_table.select("tr") if char_table else []
 
     for tr_element in tr_elements:
         td_elements = tr_element.select("td")
         if len(td_elements) < 6:
             continue
 
-        link_element, name, img_tags = (
-            td_elements[1].select_one("a"),
-            td_elements[2],
-            td_elements[3].select("img"),
-        )
+        name_col = 2
+        name = td_elements[name_col].get_text(strip=True)
 
-        name = (
-            td_elements[2].select_one("a").text.strip()
-            if td_elements[2].select_one("a")
-            else (
-                td_elements[2].select_one("b").text.strip()
-                if td_elements[2].select_one("b")
-                else (
-                    re.search(r"\[+([^]]+)\]+", td_elements[2].text)
-                    .group(1)
-                    .strip()  # Broken wiki link [[Name]
-                    if "[" in td_elements[2].text and "]" in td_elements[2].text
-                    else None
-                )
+        if not name:
+            continue
+
+        removed = bool(td_elements[name_col].select_one("s"))
+
+        img_tags = td_elements[1].select("img") if len(td_elements) > 1 else []
+        img_url = None
+        if img_tags:
+            img_elem = img_tags[0]
+            img_url = (
+                img_elem.get("data-src") or
+                img_elem.get("data-image-name") or
+                img_elem.get("src") or
+                ""
             )
-        )
-
-        removed = bool(td_elements[2].select_one("s"))
-
-        img_url = (
-            link_element.get("href", "").split(".png")[0] + ".png"
-            if link_element and "new" not in link_element.get("class", [])
-            else None
-        )
+            if img_url:
+                img_url = img_url.split(".png")[0] + ".png"
 
         tba_in_img = any(
-            "TbaName.png"
-            in (
-                img.get("src", "")
-                + img.get("data-src", "")
-                + img.get("data-image-name", "")
-            )
-            for img in img_tags
+            "TbaName.png" in (img.get("src", "") + img.get("data-src", ""))
+            for img in tr_element.select("img")
         )
 
         available = not tba_in_img and img_url is not None
@@ -94,53 +93,52 @@ async def extract_board_data(html):
     data = []
     number = 1
 
-    tr_elements = soup.select("table.article-table tr")
+    # Find the hoverboard-specific table by looking for specific headers
+    tables = soup.select("table.article-table")
+    board_table = None
+
+    for table in tables:
+        header_row = table.select("tr th, tr td:first-child")
+        headers = [h.get_text(strip=True).lower() for h in header_row[:5]]
+        if any(h in headers for h in ["hoverboard", "board", "name", "image"]):
+            board_table = table
+            break
+
+    if not board_table:
+        board_table = tables[0] if tables else None
+
+    tr_elements = board_table.select("tr") if board_table else []
 
     for tr_element in tr_elements:
         td_elements = tr_element.select("td")
-        if len(td_elements) < 8:
+        if len(td_elements) < 6:
             continue
 
-        removed = bool(td_elements[3].select_one("s"))
+        # Name is in column 2 (index), Picture in column 1, Number in column 0
+        name_col = 2
+        name = td_elements[name_col].get_text(strip=True)
 
-        link_element, name, img_tags = (
-            td_elements[3].select_one("a"),
-            td_elements[3],
-            td_elements[2].select("img"),
-        )
+        if not name:
+            continue
 
-        name = (
-            td_elements[3].select_one("a").text.strip()
-            if td_elements[3].select_one("a")
-            else (
-                td_elements[3].select_one("b").text.strip()
-                if td_elements[3].select_one("b")
-                else (
-                    re.search(r"\[+([^]]+)\]+", td_elements[3].text).group(1).strip()
-                    if "[" in td_elements[3].text and "]" in td_elements[3].text
-                    else None
-                )
+        removed = bool(td_elements[name_col].select_one("s"))
+
+        img_tags = td_elements[1].select("img") if len(td_elements) > 1 else []
+        img_url = None
+        if img_tags:
+            img_elem = img_tags[0]
+            img_url = (
+                img_elem.get("data-src")
+                or img_elem.get("data-image-name")
+                or img_elem.get("src")
+                or ""
             )
-        )
+            if img_url:
+                img_url = img_url.split(".png")[0] + ".png"
 
-        img_url = (
-            (
-                (img_tags[0].get("data-src") or img_tags[0].get("src")).split(".png")[0]
-                + ".png"
-            )
-            if img_tags and (img_tags[0].get("data-src") or img_tags[0].get("src"))
-            else None
-        )
-
-        all_imgs = tr_element.select("img")
         tba_in_img = any(
-            "TbaName.png"
-            in (
-                img.get("src", "")
-                + img.get("data-src", "")
-                + img.get("data-image-name", "")
-            )
-            for img in all_imgs
+            "TbaName.png" in (img.get("src", "") + img.get("data-src", ""))
+            for img in tr_element.select("img")
         )
 
         available = not tba_in_img and img_url is not None
@@ -155,9 +153,6 @@ async def extract_board_data(html):
             "available": available,
         }
         number += 1
-
-        # if removed:
-        #    board_data["removed"] = True
 
         data.append(item_data)
         print(f"Scraped: {name}")
