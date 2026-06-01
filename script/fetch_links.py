@@ -52,7 +52,13 @@ async def extract_character_data(html):
             continue
 
         name_col = 2
-        name = td_elements[name_col].get_text(strip=True)
+        name_cell = td_elements[name_col]
+
+        a_tag = name_cell.find("a")
+        if a_tag and a_tag.has_attr("title"):
+            name = a_tag["title"]
+        else:
+            name = name_cell.get_text(strip=True)
 
         if not name:
             continue
@@ -118,7 +124,13 @@ async def extract_board_data(html):
             continue
 
         name_col = 2
-        name = td_elements[name_col].get_text(strip=True)
+        name_cell = td_elements[name_col]
+
+        a_tag = name_cell.find("a")
+        if a_tag and a_tag.has_attr("title"):
+            name = a_tag["title"]
+        else:
+            name = name_cell.get_text(strip=True)
 
         if not name:
             continue
