@@ -17,7 +17,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set vars
         id: var
@@ -46,10 +46,8 @@ jobs:
       - name: Cache dependencies
         uses: actions/setup-python@v6.2.0
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          python-version: "3.x"
+          cache: pip
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -78,9 +76,13 @@ jobs:
 
       - name: Extract Game Data
         run: |
-          python script/fetch_locale.py -f ${{ steps.gamefile.outputs.PATH }} -l en --output temp/output/en_locale.json
           python script/fetch_characters.py
           python script/fetch_boards.py
+          python script/fetch_outfits.py
+
+      - name: Extract Game Data
+        run: |
+          python script/fetch_locale.py -f ${{ steps.gamefile.outputs.PATH }} -l en --output temp/output/en_locale.json
           python script/playerprofile.py
           python script/userstats.py
           python script/collection.py
@@ -93,7 +95,7 @@ jobs:
           python script/citytours.py
           python script/products.py
 
-      - name: Update Game Data
+      - name: Sort Game Data
         run: |
           python misc/sort_characters.py
           python misc/sort_boards.py

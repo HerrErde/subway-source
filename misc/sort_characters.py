@@ -119,6 +119,9 @@ def build_products_name_to_id(products_data, locale_data):
                     # Prefer the base character ID when display names collide.
                     name_to_id[k_display] = base_id
 
+        if _is_outfit_variant_id(prod_id):
+            name_to_id[prod_id] = prod_id
+
     return name_to_id
 
 
@@ -134,7 +137,8 @@ def build_link_order_ids(link_data, products_data, locale_data):
         if not isinstance(original_name, str) or not original_name:
             continue
 
-        k = keyify(original_name)
+        name_before_paren = re.split(r"\s*\(", original_name, maxsplit=1)[0]
+        k = keyify(name_before_paren)
         candidates: List[str] = []
 
         for base_id in locale_display_to_codes.get(k, []):
@@ -168,12 +172,15 @@ def sort_json(data, link_ids):
             if k_c in item_dict:
                 matched_dict_key = k_c
                 break
-            for dict_key in item_dict:
-                if dict_key.startswith(k_c) or k_c.startswith(dict_key):
-                    matched_dict_key = dict_key
+        if not matched_dict_key:
+            for c in candidate_ids:
+                k_c = keyify(c)
+                for dict_key in item_dict:
+                    if dict_key.startswith(k_c) or k_c.startswith(dict_key):
+                        matched_dict_key = dict_key
+                        break
+                if matched_dict_key:
                     break
-            if matched_dict_key:
-                break
 
         if matched_dict_key is not None:
             entry = item_dict.pop(matched_dict_key)
@@ -186,6 +193,27 @@ def sort_json(data, link_ids):
                     "outfits": entry.get("outfits"),
                 }
             )
+            outfit_keys = sorted(
+                [
+                    k
+                    for k in item_dict
+                    if k.startswith(matched_dict_key) and k.endswith("outfit")
+                ],
+            )
+            for ok in outfit_keys:
+                outfit_entry = item_dict.pop(ok)
+                matched_items.add(keyify(outfit_entry["id"]))
+                print(
+                    f"[{len(ordered_data) + 1}] Match outfit: "
+                    f"{outfit_entry['id']} -> {original_name}"
+                )
+                ordered_data.append(
+                    {
+                        "number": len(ordered_data) + 1,
+                        "id": outfit_entry["id"],
+                        "outfits": outfit_entry.get("outfits"),
+                    }
+                )
         else:
             fallback_id = candidate_ids[0] if candidate_ids else original_name
             print(

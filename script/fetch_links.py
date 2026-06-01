@@ -54,12 +54,7 @@ async def extract_character_data(html):
         img_url = None
         if img_tags:
             img_elem = img_tags[0]
-            img_url = (
-                img_elem.get("data-src") or
-                img_elem.get("data-image-name") or
-                img_elem.get("src") or
-                ""
-            )
+            img_url = img_elem.get("data-src") or img_elem.get("src") or ""
             if img_url:
                 img_url = img_url.split(".png")[0] + ".png"
 
@@ -127,12 +122,7 @@ async def extract_board_data(html):
         img_url = None
         if img_tags:
             img_elem = img_tags[0]
-            img_url = (
-                img_elem.get("data-src")
-                or img_elem.get("data-image-name")
-                or img_elem.get("src")
-                or ""
-            )
+            img_url = img_elem.get("data-src") or img_elem.get("src") or ""
             if img_url:
                 img_url = img_url.split(".png")[0] + ".png"
 
@@ -191,7 +181,7 @@ async def main():
     )
     tasks.append(
         fetch_data(
-            "https://subwaysurf.fandom.com/wiki/Hoverboard",
+            "https://subwaysurf.fandom.com/wiki/Hoverboards",
             "temp/upload/boards_links.json",
             2,
         )

@@ -81,8 +81,11 @@ def extract_order_ids(link_data, products_data):
         if not isinstance(original, str) or not original:
             continue
 
-        k = keyify(original)
+        name_before_paren = re.split(r"\s*\(", original, maxsplit=1)[0]
+        k = keyify(name_before_paren)
         base_id = name_to_id.get(k)
+        if not base_id:
+            base_id = name_to_id.get(keyify("Ukulele")) if k == "ukelele" else None
         if base_id:
             ordered.append((base_id, original))
         else:
