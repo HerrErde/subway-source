@@ -1,19 +1,28 @@
 import asyncio
 import json
-import re
 import sys
 
 import aiofiles
+import httpx
 from bs4 import BeautifulSoup
 
+API_URL = "https://subwaysurf.fandom.com/api.php"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+}
 
-def create_cf_session():
-    from curl_cffi.requests import Session
 
-    return Session(impersonate="chrome")
-
-
-SESSION = create_cf_session()
+async def fetch_page_html(client, page_title):
+    params = {
+        "action": "parse",
+        "page": page_title,
+        "format": "json",
+        "prop": "text",
+    }
+    resp = await client.get(API_URL, params=params, headers=HEADERS, timeout=60)
+    resp.raise_for_status()
+    data = resp.json()
+    return data["parse"]["text"]["*"]
 
 
 async def extract_character_data(html):
@@ -88,7 +97,6 @@ async def extract_board_data(html):
     data = []
     number = 1
 
-    # Find the hoverboard-specific table by looking for specific headers
     tables = soup.select("table.article-table")
     board_table = None
 
@@ -109,7 +117,6 @@ async def extract_board_data(html):
         if len(td_elements) < 6:
             continue
 
-        # Name is in column 2 (index), Picture in column 1, Number in column 0
         name_col = 2
         name = td_elements[name_col].get_text(strip=True)
 
@@ -150,11 +157,9 @@ async def extract_board_data(html):
     return data
 
 
-async def fetch_data(url, json_file, data_type):
+async def fetch_data(client, page_title, json_file, data_type):
     try:
-        response = await asyncio.to_thread(SESSION.get, url, timeout=60)
-        response.raise_for_status()
-        html = response.text
+        html = await fetch_page_html(client, page_title)
         if data_type == 1:
             data = await extract_character_data(html)
         elif data_type == 2:
@@ -162,7 +167,7 @@ async def fetch_data(url, json_file, data_type):
         else:
             data = []
     except Exception as e:
-        print(f"An error occurred fetching data from {url}: {e}")
+        print(f"An error occurred fetching data from {page_title}: {e}")
         data = []
 
     async with aiofiles.open(json_file, "w", encoding="utf-8") as file:
@@ -170,24 +175,12 @@ async def fetch_data(url, json_file, data_type):
 
 
 async def main():
-    tasks = []
-
-    tasks.append(
-        fetch_data(
-            "https://subwaysurf.fandom.com/wiki/Characters",
-            "temp/upload/characters_links.json",
-            1,
-        )
-    )
-    tasks.append(
-        fetch_data(
-            "https://subwaysurf.fandom.com/wiki/Hoverboards",
-            "temp/upload/boards_links.json",
-            2,
-        )
-    )
-
-    await asyncio.gather(*tasks)
+    async with httpx.AsyncClient() as client:
+        tasks = [
+            fetch_data(client, "Characters", "temp/upload/characters_links.json", 1),
+            fetch_data(client, "Hoverboards", "temp/upload/boards_links.json", 2),
+        ]
+        await asyncio.gather(*tasks)
 
 
 if __name__ == "__main__":
