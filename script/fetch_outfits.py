@@ -1,35 +1,34 @@
 import json
 import sys
-from bs4 import BeautifulSoup
 from multiprocessing import Pool, cpu_count
+
+import httpx
+from bs4 import BeautifulSoup
 
 input_file_path = "temp/upload/characters_links.json"
 output_file_path = "temp/upload/characters_outfit.json"
 
-
-def create_cf_session():
-    from curl_cffi.requests import Session
-
-    return Session(impersonate="chrome")
-
-
-def load_data(file_path):
-    with open(file_path, "r", encoding="utf-8") as file:
-        return json.load(file)
+API_URL = "https://subwaysurf.fandom.com/api.php"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+}
 
 
-def save_data(output, file_path):
-    with open(file_path, "w", encoding="utf-8") as file:
-        json.dump(output, file, indent=2)
-
-
-def fetch_content(session, url):
+def fetch_page_html(session, page_title):
+    params = {
+        "action": "parse",
+        "page": page_title,
+        "format": "json",
+        "prop": "text",
+    }
     try:
-        r = session.get(url, timeout=10)
-        r.raise_for_status()
-        return BeautifulSoup(r.content, "lxml")
-    except Exception:
-        return None
+        resp = session.get(API_URL, params=params, headers=HEADERS, timeout=60)
+        resp.raise_for_status()
+        data = resp.json()
+        return data["parse"]["text"]["*"]
+    except Exception as e:
+        print(f"Error fetching page '{page_title}': {e}")
+        return ""
 
 
 def extract_names(toc):
@@ -54,64 +53,70 @@ def extract_names(toc):
     return names
 
 
-def extract_data(tabber_div, cleaned_names):
-    tabs = tabber_div.find_all("div", class_="wds-tab__content")
-    out = []
-
-    for i, tab in enumerate(tabs):
-        img = tab.select_one("img")
-        if not img:
-            continue
-
-        url = img.get("src")
-        if not url:
-            continue
-
-        if ".png" in url:
-            url = url.split(".png")[0] + ".png"
-
-        name = cleaned_names[i] if i < len(cleaned_names) else ""
-        out.append({"name": name, "url": url})
-
-    return out
-
-
-def fetch_data(session, entry):
-    if not entry.get("available"):
+def normalize_url(url):
+    if not url:
         return None
+    if ".png" in url:
+        return url.split(".png")[0] + ".png"
+    return url
 
-    name = entry["name"]
-    url = f"https://subwaysurf.fandom.com/wiki/{name.replace(' ', '_')}"
 
-    soup = fetch_content(session, url)
-    if soup is None:
-        return {"name": name, "outfits": None}
-
-    toc = soup.find(id="toc")
-    if not toc:
-        return {"name": name, "outfits": None}
-
-    names = extract_names(toc)
+def extract_outfits(html):
+    soup = BeautifulSoup(html, "html.parser")
 
     infobox = soup.select_one("table.infobox")
     if not infobox:
-        return {"name": name, "outfits": None}
+        return []
 
     tabber = infobox.select_one("div.tabber.wds-tabber")
-    if not tabber:
-        return {"name": name, "outfits": None}
+    if tabber:
+        toc = soup.find(id="toc")
+        names = ["Default Outfit"] + extract_names(toc) if toc else []
+        tabs = tabber.find_all("div", class_="wds-tab__content")
+        outfits = []
+        for i, tab in enumerate(tabs):
+            img = tab.select_one("img")
+            if not img:
+                continue
+            url = img.get("data-src") or img.get("src")
+            if not url:
+                continue
+            url = normalize_url(url)
+            name = names[i] if i < len(names) else ""
+            outfits.append({"name": name, "url": url})
+        return outfits
 
-    outfits = extract_data(tabber, names)
-    return {"name": name, "outfits": outfits}
+    img = infobox.select_one("img")
+    if img:
+        url = img.get("data-src") or img.get("src")
+        if url:
+            return [{"name": "Default Outfit", "url": normalize_url(url)}]
+
+    return []
 
 
 def worker(entry):
-    session = create_cf_session()
-    return fetch_data(session, entry)
+    name = entry["name"]
+    session = httpx.Client()
+    try:
+        html = fetch_page_html(session, name)
+        if not html:
+            return {"name": name, "outfits": []}
+
+        outfits = extract_outfits(html)
+        print(f"Extracted {len(outfits)} outfits for '{name}'")
+        return {"name": name, "outfits": outfits}
+    except Exception as e:
+        print(f"Error processing '{name}': {e}")
+        return {"name": name, "outfits": []}
+    finally:
+        session.close()
 
 
 def process_entries(data, limit):
-    entries = data[:limit]
+    entries = [entry for entry in data if entry.get("available")]
+    if limit and limit > 0:
+        entries = entries[:limit]
 
     workers = min(cpu_count(), 12)
     print(f"Using {workers} parallel workers")
@@ -119,17 +124,20 @@ def process_entries(data, limit):
     with Pool(workers) as pool:
         results = pool.map(worker, entries)
 
-    return [r for r in results if r is not None]
+    return results
 
 
 def main(limit):
-    data = load_data(input_file_path)
+    with open(input_file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
     if limit is None or limit <= 0:
         limit = len(data)
 
     out = process_entries(data, limit)
-    save_data(out, output_file_path)
+
+    with open(output_file_path, "w", encoding="utf-8") as f:
+        json.dump(out, f, indent=2)
 
 
 if __name__ == "__main__":
