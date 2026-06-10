@@ -3,22 +3,14 @@ import json
 import re
 import sys
 import zipfile
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import httpx
 import argparse
 from pathlib import Path
 
 manifest_api_url = "https://manifest.tower.sybo.net"
-gamedata_api_url = "https://gamedata.tower.sybo.net"
 download_dir = "temp/gamedata"
 
-headers = {
-    "User-Agent": "grpc-dotnet/2.63.0 (Mono Unity; CLR 4.0.30319.17020; netstandard2.0; arm64) com.kiloo.subwaysurf/3.45.0",
-    "Content-Type": "application/json",
-}
-
-MAX_DOWNLOAD_RETRIES = 3
 VERSION_RE = re.compile(r"\d{1,2}[.-]\d{1,2}[.-]\d{1,2}")
 
 
@@ -51,120 +43,65 @@ def read_secret(game_file, internal_path, apkm=False):
         return data.get("Secret"), data.get("Game")
 
 
-def get_manifest(
+def get_gamedata(
     game: str,
-    manifest_secret: str,
     version: str,
     platform: str,
+    manifest_secret: str,
+    output_path: str | Path,
     experiment: str = None,
-    manifest_path: str = None,
+    save_manifest: bool = False,
+    save_gamedata_manifest: bool = False,
+    extract_data: bool = True,
 ):
+    output_path = Path(output_path)
+
     experiment_path = f"/{experiment}" if experiment else ""
-    url = f"{manifest_api_url}/v1.0/{game}/{version}/{platform}/{manifest_secret}{experiment_path}/manifest.json"
+    url = f"{manifest_api_url}/v2.0/{game}/{version}/{platform}/{manifest_secret}{experiment_path}/archive.zip"
+
     with httpx.Client(http2=True) as client:
-        r = client.get(url, headers=headers)
+        r = client.get(url)
         r.raise_for_status()
-        manifest = r.json()
-        if manifest_path:
-            manifest_path.mkdir(parents=True, exist_ok=True)
-            dest_path = manifest_path / "manifest.json"
 
-            with dest_path.open("w", encoding="utf-8") as f:
-                json.dump(manifest, f, indent=2)
-        return manifest.get("gamedata")
+        zf = zipfile.ZipFile(io.BytesIO(r.content))
 
+        try:
+            root_manifest_bytes = zf.read("manifest.json")
+            if save_manifest:
+                dest = output_path / "manifest.json"
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(root_manifest_bytes)
+        except KeyError:
+            root_manifest_bytes = None
 
-def get_objects(game: str, gamedata_secret: str):
-    url = f"{gamedata_api_url}/v1.0/{game}/{gamedata_secret}/manifest.json"
-    with httpx.Client(http2=True) as client:
-        r = client.get(url, headers=headers)
-        r.raise_for_status()
-        gamedata_manifest = r.json()
-        return gamedata_manifest.get("objects")
+        try:
+            data_manifest_bytes = zf.read("data/manifest.json")
+            if save_gamedata_manifest:
+                dest = output_path / "manifest.json"
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(data_manifest_bytes)
+        except KeyError:
+            data_manifest_bytes = None
 
+        if extract_data:
+            for member in zf.namelist():
+                if not member.startswith("data/") or member.endswith("/"):
+                    continue
 
-def download_file(game: str, secret: str, filename: str, output_path: str):
-    url = f"{gamedata_api_url}/v1.0/{game}/{secret}/{filename}"
-    output_path = Path(output_path)
-    dest_path = output_path / Path(filename)
+                rel_path = Path(member[len("data/") :])
+                dest_path = output_path / rel_path
 
-    if output_path.exists() and not output_path.is_dir():
-        raise RuntimeError(f"'{output_path}' exists but is not a directory")
+                dest_path.parent.mkdir(parents=True, exist_ok=True)
 
-    dest_path.parent.mkdir(parents=True, exist_ok=True)
+                with zf.open(member) as src:
+                    dest_path.write_bytes(src.read())
 
-    last_error = None
-    with httpx.Client(http2=True) as client:
-        for attempt in range(1, MAX_DOWNLOAD_RETRIES + 1):
-            try:
-                r = client.get(url)
-                if r.status_code == 200:
-                    with dest_path.open("wb") as f:
-                        f.write(r.content)
+                print(f"Extracted {rel_path} -> {dest_path}")
 
-                    print(f"Downloaded {filename} -> {dest_path}")
-                    return True
-
-                last_error = f"HTTP {r.status_code}"
-                if attempt < MAX_DOWNLOAD_RETRIES:
-                    print(
-                        f"Retrying {filename} immediately "
-                        f"({attempt}/{MAX_DOWNLOAD_RETRIES}) after {last_error}"
-                    )
-            except httpx.HTTPError as exc:
-                last_error = str(exc)
-                if attempt < MAX_DOWNLOAD_RETRIES:
-                    print(
-                        f"Retrying {filename} immediately "
-                        f"({attempt}/{MAX_DOWNLOAD_RETRIES}) after {last_error}"
-                    )
-
-    print(f"Failed to download {filename}: {last_error}")
-    return False
+    return True
 
 
-def expected_filenames(objects: dict):
-    return sorted(
-        {obj.get("filename") for obj in (objects or {}).values() if obj.get("filename")}
-    )
-
-
-def missing_files(filenames, output_path):
-    output_path = Path(output_path)
-    missing = []
-    for filename in filenames:
-        dest_path = output_path / Path(filename)
-        if not dest_path.is_file() or dest_path.stat().st_size == 0:
-            missing.append(filename)
-    return missing
-
-
-def download_all_files(game: str, secret: str, objects: dict, output_path: str):
-    filenames = expected_filenames(objects)
-    if not filenames:
-        print("No gamedata files found in manifest.")
-        return
-
-    with ThreadPoolExecutor() as executor:
-        futures = {
-            executor.submit(
-                download_file, game, secret, filename, output_path
-            ): filename
-            for filename in filenames
-        }
-        for future in as_completed(futures):
-            future.result()
-
-    pending = missing_files(filenames, output_path)
-    if not pending:
-        return
-
-    raise RuntimeError(
-        "Failed to download all manifest files. Missing: " + ", ".join(pending)
-    )
-
-
-def get_gamedata(args):
+def main(args):
     internal_path = None
     ext = None
     version = args.version
@@ -173,7 +110,7 @@ def get_gamedata(args):
     if file_path:
         ext = file_path.suffix
         if ext not in (".ipa", ".apk", ".apkm"):
-            sys.exit("Error: File must have .ipa, .apk, or .apkm extension.")
+            sys.exit("Error: File must be an .ipa, .apk, or .apkm file.")
 
         platform = "ios" if ext == ".ipa" else "android"
 
@@ -217,21 +154,42 @@ def get_gamedata(args):
 
     version = version.replace("-", ".")
 
-    manifest_path = None
-    if args.manifest:
-        manifest_path = output_path
+    try:
+        get_gamedata(
+            args.game,
+            version,
+            platform,
+            args.secret,
+            output_path,
+            experiment=args.experiment,
+            save_manifest=args.manifest,
+            save_gamedata_manifest=args.gamedatamanifest,
+            extract_data=args.gamedata,
+        )
+    except httpx.HTTPStatusError as e:
+        print(f"Archive request failed: {e}", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
-    gamedata_secret = get_manifest(
-        args.game, args.secret, version, platform, args.experiment, manifest_path
-    )
+    """
+        manifest_path = None
+        if args.manifest:
+            manifest_path = output_path
 
-    if args.gamedata:
-        objects = get_objects(args.game, gamedata_secret)
-        download_all_files(args.game, gamedata_secret, objects, output_path)
+        gamedata_secret = get_manifest(
+            args.game, args.secret, version, platform, args.experiment, manifest_path
+        )
+
+        if args.gamedata:
+            objects = get_objects(args.game, gamedata_secret)
+            download_all_files(args.game, gamedata_secret, objects, output_path)
+    """
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Extract gamedata from Subway Surfers")
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Gamedata downloader")
 
     parser.add_argument("-f", "--file", type=str, default=None)
     parser.add_argument("-v", "--version", type=str, help="Game version (X-Y-Z)")
@@ -246,6 +204,13 @@ def main():
         "--gamedata",
         action="store_true",
         help="Gets the gamedata files",
+    )
+
+    parser.add_argument(
+        "--gamedata-manifest",
+        action="store_true",
+        dest="gamedatamanifest",
+        help="Gets the Gamedata Manifest",
     )
 
     parser.add_argument(
@@ -281,24 +246,13 @@ def main():
             print(f"Error: file not found: {args.file}", file=sys.stderr)
             sys.exit(1)
 
-    if not args.file and not args.platform:
-        print(
-            "Error: either --file or --platform is required",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
     if not args.gamedata and not args.manifest:
         args.gamedata = True
 
     try:
-        get_gamedata(args)
+        main(args)
     except KeyboardInterrupt:
         sys.exit(1)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
