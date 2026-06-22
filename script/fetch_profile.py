@@ -1,26 +1,31 @@
 import json
+import os
 
+import httpx
 from bs4 import BeautifulSoup
 
 url = "https://subwaysurf.fandom.com/wiki/Player_Profile"
 
 filename = "temp/upload/playerprofile_links.json"
 
-
-def create_cf_session():
-    from curl_cffi.requests import Session
-
-    return Session(impersonate="chrome")
-
-
-SESSION = create_cf_session()
+API_URL = "https://subwaysurf.fandom.com/api.php"
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+}
 
 
-def fetch_data(url):
+def fetch_html(page_title):
+    params = {
+        "action": "parse",
+        "page": page_title,
+        "format": "json",
+        "prop": "text",
+    }
     try:
-        response = SESSION.get(url)
+        response = httpx.get(API_URL, params=params, headers=HEADERS, timeout=60)
         response.raise_for_status()
-        return BeautifulSoup(response.text, "html.parser")
+        data = response.json()
+        return BeautifulSoup(data["parse"]["text"]["*"], "html.parser")
     except Exception as e:
         print("Error fetching HTML:", e)
         return None
@@ -132,12 +137,13 @@ def fetch_frame(soup):
 def save_json(portraits, frames):
     data = {"Portraits": portraits, "Frames": frames}
 
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
 
 def main():
-    soup = fetch_data(url)
+    soup = fetch_html("Player_Profile")
     if soup:
         portraits = fetch_profile(soup)
         frames = fetch_frame(soup)
