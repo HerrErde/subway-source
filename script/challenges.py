@@ -39,14 +39,14 @@ def main():
         format_prefix = f"s{season_number}_"
         challenge_data_output = {}
 
-        challenges = data.get("challenges", [])
+        challenges = data.get("challenges", {})
         eliteChallenges = data.get("eliteChallenges", {})
-        challengeDefinitions = data.get("challengeDefinitions", [])
+        challengeDefinitions = data.get("challengeDefinitions", {})
 
         print(f"Processing season {season_number} challenges...")
 
         # Process each challenge
-        for challenge in challenges:
+        for challenge in challenges.values():
             challengeId = challenge.get("id", "")
 
             # Check if challengeId starts with the current season
@@ -83,7 +83,7 @@ def main():
                 matching_definition = next(
                     (
                         definition
-                        for definition in challengeDefinitions
+                        for definition in challengeDefinitions.values()
                         if definition.get("id", "").lower()
                         == related_challenge_id.lower()
                     ),
