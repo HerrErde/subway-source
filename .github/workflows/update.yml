@@ -83,6 +83,9 @@ jobs:
       - name: Extract Game Data
         run: |
           python script/fetch_locale.py -f ${{ steps.gamefile.outputs.PATH }} -l en --output temp/output/en_locale.json
+
+      - name: Extract Game Data
+        run: |
           python script/playerprofile.py
           python script/userstats.py
           python script/collection.py
@@ -106,7 +109,7 @@ jobs:
         run: python misc/check.py
 
       - name: Upload Data
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           body_path: "temp/update.txt"
           tag_name: ${{steps.var.outputs.version}}

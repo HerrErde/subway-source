@@ -201,6 +201,18 @@ def get_scripts(
     if apptype == "apkm":
         android_download_script.append("--apkm")
 
+    gamedata_script = [
+        "misc/get_gamedata.py",
+        "-f",
+        f"subway-surfers-{version}.{ext}",
+        "-v",
+        version,
+        "--output",
+        "temp/gamedata",
+    ]
+    if experiment:
+        gamedata_script.extend(["-ex", experiment])
+
     if extract:
         scripts = []
 
@@ -208,19 +220,6 @@ def get_scripts(
             scripts.append(["script/down-ipa.py", version, session])
         elif apptype in ["apk", "apkm"]:
             scripts.append(android_download_script)
-
-        gamedata_script = [
-            "misc/get_gamedata.py",
-            "-f",
-            f"subway-surfers-{version}.{ext}",
-            "-v",
-            version,
-            "--output",
-            "temp/gamedata",
-        ]
-
-        if experiment:
-            gamedata_script.extend(["-ex", experiment])
 
         scripts.append(gamedata_script)
         return scripts
@@ -238,18 +237,6 @@ def get_scripts(
             script_list.append(["script/down-ipa.py", version, session])
         elif apptype in ["apk", "apkm"]:
             script_list.append(android_download_script)
-
-    gamedata_script = [
-        "misc/get_gamedata.py",
-        "-f",
-        f"subway-surfers-{version}.{ext}",
-        "-v",
-        version,
-        "--output",
-        "temp/gamedata",
-    ]
-    if experiment:
-        gamedata_script.extend(["-ex", experiment])
 
     script_list.append(gamedata_script)
 

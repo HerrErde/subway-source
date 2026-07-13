@@ -1,8 +1,7 @@
-import asyncio
 import json
+import os
 import sys
 
-import aiofiles
 import httpx
 from bs4 import BeautifulSoup
 
@@ -12,20 +11,25 @@ HEADERS = {
 }
 
 
-async def fetch_page_html(client, page_title):
+def fetch_page_html(page_title):
     params = {
         "action": "parse",
         "page": page_title,
         "format": "json",
         "prop": "text",
     }
-    resp = await client.get(API_URL, params=params, headers=HEADERS, timeout=60)
+    resp = httpx.get(API_URL, params=params, headers=HEADERS, timeout=60)
     resp.raise_for_status()
-    data = resp.json()
-    return data["parse"]["text"]["*"]
+    return resp.json()["parse"]["text"]["*"]
 
 
-async def extract_character_data(html):
+def save_json(data, file_path):
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
+
+
+def extract_character_data(html):
     soup = BeautifulSoup(html, "html.parser")
 
     data = []
@@ -97,7 +101,7 @@ async def extract_character_data(html):
     return data
 
 
-async def extract_board_data(html):
+def extract_board_data(html):
     soup = BeautifulSoup(html, "html.parser")
 
     data = []
@@ -169,33 +173,19 @@ async def extract_board_data(html):
     return data
 
 
-async def fetch_data(client, page_title, json_file, data_type):
+def main():
     try:
-        html = await fetch_page_html(client, page_title)
-        if data_type == 1:
-            data = await extract_character_data(html)
-        elif data_type == 2:
-            data = await extract_board_data(html)
-        else:
-            data = []
+        characters_html = fetch_page_html("Characters")
+        characters = extract_character_data(characters_html)
+        save_json(characters, "temp/upload/characters_links.json")
+
+        boards_html = fetch_page_html("Hoverboards")
+        boards = extract_board_data(boards_html)
+        save_json(boards, "temp/upload/boards_links.json")
     except Exception as e:
-        print(f"An error occurred fetching data from {page_title}: {e}")
-        data = []
-
-    async with aiofiles.open(json_file, "w", encoding="utf-8") as file:
-        await file.write(json.dumps(data, indent=2))
-
-
-async def main():
-    async with httpx.AsyncClient() as client:
-        tasks = [
-            fetch_data(client, "Characters", "temp/upload/characters_links.json", 1),
-            fetch_data(client, "Hoverboards", "temp/upload/boards_links.json", 2),
-        ]
-        await asyncio.gather(*tasks)
+        print(f"Error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    if sys.platform == "win32":
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(main())
+    main()

@@ -1,6 +1,5 @@
-aiofiles==24.1.0
-beautifulsoup4==4.13.3
-rapidfuzz==3.12.2
+beautifulsoup4
+rapidfuzz
 Requests
 httpx[http2]
 curl_cffi

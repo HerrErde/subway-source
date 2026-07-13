@@ -1,34 +1,41 @@
 import json
+import os
 import sys
 from multiprocessing import Pool, cpu_count
 
 import httpx
 from bs4 import BeautifulSoup
 
-input_file_path = "temp/upload/characters_links.json"
-output_file_path = "temp/upload/characters_outfit.json"
-
 API_URL = "https://subwaysurf.fandom.com/api.php"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
 }
 
+input_file_path = "temp/upload/characters_links.json"
+output_file_path = "temp/upload/characters_outfit.json"
 
-def fetch_page_html(session, page_title):
+
+def fetch_page_html(page_title):
     params = {
         "action": "parse",
         "page": page_title,
         "format": "json",
         "prop": "text",
     }
-    try:
-        resp = session.get(API_URL, params=params, headers=HEADERS, timeout=60)
-        resp.raise_for_status()
-        data = resp.json()
-        return data["parse"]["text"]["*"]
-    except Exception as e:
-        print(f"Error fetching page '{page_title}': {e}")
-        return ""
+    resp = httpx.get(API_URL, params=params, headers=HEADERS, timeout=60)
+    resp.raise_for_status()
+    return resp.json()["parse"]["text"]["*"]
+
+
+def load_json(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_json(data, file_path):
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2)
 
 
 def extract_names(toc):
@@ -53,14 +60,6 @@ def extract_names(toc):
     return names
 
 
-def normalize_url(url):
-    if not url:
-        return None
-    if ".png" in url:
-        return url.split(".png")[0] + ".png"
-    return url
-
-
 def extract_outfits(html):
     soup = BeautifulSoup(html, "html.parser")
 
@@ -81,7 +80,7 @@ def extract_outfits(html):
             url = img.get("data-src") or img.get("src")
             if not url:
                 continue
-            url = normalize_url(url)
+            url = img_url.split(".png")[0] + ".png"
             name = names[i] if i < len(names) else ""
             outfits.append({"name": name, "url": url})
         return outfits
@@ -90,16 +89,15 @@ def extract_outfits(html):
     if img:
         url = img.get("data-src") or img.get("src")
         if url:
-            return [{"name": "Default Outfit", "url": normalize_url(url)}]
+            return [{"name": "Default Outfit", "url": url.split(".png")[0] + ".png"}]
 
     return []
 
 
 def worker(entry):
     name = entry["name"]
-    session = httpx.Client()
     try:
-        html = fetch_page_html(session, name)
+        html = fetch_page_html(name)
         if not html:
             return {"name": name, "outfits": []}
 
@@ -109,8 +107,6 @@ def worker(entry):
     except Exception as e:
         print(f"Error processing '{name}': {e}")
         return {"name": name, "outfits": []}
-    finally:
-        session.close()
 
 
 def process_entries(data, limit):
@@ -128,18 +124,19 @@ def process_entries(data, limit):
 
 
 def main(limit):
-    with open(input_file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+    data = load_json(input_file_path)
 
     if limit is None or limit <= 0:
         limit = len(data)
 
     out = process_entries(data, limit)
-
-    with open(output_file_path, "w", encoding="utf-8") as f:
-        json.dump(out, f, indent=2)
+    save_json(out, output_file_path)
 
 
 if __name__ == "__main__":
-    limit = int(sys.argv[1]) if len(sys.argv) > 1 else None
-    main(limit)
+    try:
+        limit = int(sys.argv[1]) if len(sys.argv) > 1 else None
+        main(limit)
+    except Exception as e:
+        print(f"Error: {e}")
+        sys.exit(1)
