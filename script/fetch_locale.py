@@ -10,7 +10,6 @@ from Crypto.Cipher import AES
 
 HEADER_SIZE = 32
 COUNTER_SIZE = 16
-KEY_SIZE = 16
 
 
 def open_inner_android_apk(zf):
@@ -158,7 +157,7 @@ def get_locale(args):
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
-        json.dumps(parsed_json, indent=2) + "\n",
+        json.dumps(parsed_json, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
 
@@ -194,7 +193,7 @@ def extract_all_locales(args):
 
         out_file = out_dir / f"{locale}.json"
         out_file.write_text(
-            json.dumps(parsed_json, indent=2) + "\n",
+            json.dumps(parsed_json, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
 
