@@ -9,7 +9,7 @@ import argparse
 from pathlib import Path
 
 manifest_api_url = "https://manifest.tower.sybo.net"
-download_dir = "temp/gamedata"
+gamedata_api_url = "https://gamedata.tower.sybo.net"
 
 VERSION_RE = re.compile(r"\d{1,2}[.-]\d{1,2}[.-]\d{1,2}")
 
@@ -43,21 +43,43 @@ def read_secret(game_file, internal_path, apkm=False):
         return data.get("Secret"), data.get("Game")
 
 
-def get_gamedata(
+def get_manifest(
     game: str,
     version: str,
     platform: str,
     manifest_secret: str,
+    output_path: Path | None,
+    environment: str = "prod",
+):
+    url = f"{manifest_api_url}/v3.0/{game}/{environment}/{version}/{platform}/{manifest_secret}/manifest.json"
+
+    with httpx.Client(http2=True) as client:
+        r = client.get(url)
+        r.raise_for_status()
+        manifest = r.json()
+
+        if output_path:
+            dest = output_path / "manifest.json"
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(json.dumps(manifest, indent=2).encode())
+
+            print(f"Saved manifest -> {dest}")
+        return manifest
+
+
+def get_gamedata(
+    game: str,
+    version: str,
+    platform: str,
+    gamedata_hash: str,
     output_path: str | Path,
-    experiment: str = None,
     save_manifest: bool = False,
     save_gamedata_manifest: bool = False,
     extract_data: bool = True,
 ):
     output_path = Path(output_path)
 
-    experiment_path = f"/{experiment}" if experiment else ""
-    url = f"{manifest_api_url}/v2.0/{game}/{version}/{platform}/{manifest_secret}{experiment_path}/archive.zip"
+    url = f"{gamedata_api_url}/v2.0/{game}/{gamedata_hash}/archive.zip"
 
     with httpx.Client(http2=True) as client:
         r = client.get(url)
@@ -99,6 +121,75 @@ def get_gamedata(
                 print(f"Extracted {rel_path} -> {dest_path}")
 
     return True
+
+
+def get_all_experiment(
+    game: str,
+    version: str,
+    platform: str,
+    manifest_secret: str,
+    output_path: Path,
+    environment: str = "prod",
+):
+    base_url = f"{manifest_api_url}/v3.0/{game}/{environment}/{version}/{platform}/{manifest_secret}/manifest.json"
+
+    with httpx.Client(http2=True) as client:
+        r = client.get(base_url)
+        r.raise_for_status()
+        manifest = r.json()
+
+        base_dest = output_path / "manifest.json"
+        base_dest.parent.mkdir(parents=True, exist_ok=True)
+        base_dest.write_bytes(json.dumps(manifest, indent=2).encode())
+        print(f"Saved base manifest -> {base_dest}")
+
+        experiments = manifest.get("experiments", {})
+        if not experiments:
+            print("No experiments found in manifest")
+            return manifest
+
+        print(f"Found {len(experiments)} experiments, fetching gamedata for each...")
+
+        experiments_dir = output_path / "experiments"
+        experiments_dir.mkdir(parents=True, exist_ok=True)
+
+        for name, gamedata_hash in experiments.items():
+            exp_dir = experiments_dir / name
+            exp_dir.mkdir(parents=True, exist_ok=True)
+
+            try:
+                archive_url = (
+                    f"{gamedata_api_url}/v2.0/{game}/{gamedata_hash}/archive.zip"
+                )
+                r = client.get(archive_url)
+                r.raise_for_status()
+
+                zf = zipfile.ZipFile(io.BytesIO(r.content))
+
+                try:
+                    manifest_bytes = zf.read("data/manifest.json")
+                    dest = exp_dir / "manifest.json"
+                    dest.write_bytes(manifest_bytes)
+                    print(f"  Saved gamedata manifest for {name} -> {dest}")
+                except KeyError:
+                    pass
+
+                for member in zf.namelist():
+                    if not member.startswith("data/") or member.endswith("/"):
+                        continue
+                    rel_path = Path(member[len("data/") :])
+                    dest_path = exp_dir / rel_path
+                    dest_path.parent.mkdir(parents=True, exist_ok=True)
+                    with zf.open(member) as src:
+                        dest_path.write_bytes(src.read())
+                    print(f"    Saved {rel_path}")
+
+            except httpx.HTTPStatusError as e:
+                print(f"  Failed experiment {name}: {e}", file=sys.stderr)
+            except Exception as e:
+                print(f"  Failed experiment {name}: {e}", file=sys.stderr)
+
+        return manifest
 
 
 def main(args):
@@ -155,37 +246,43 @@ def main(args):
     version = version.replace("-", ".")
 
     try:
-        get_gamedata(
-            args.game,
-            version,
-            platform,
-            args.secret,
-            output_path,
-            experiment=args.experiment,
-            save_manifest=args.manifest,
-            save_gamedata_manifest=args.gamedatamanifest,
-            extract_data=args.gamedata,
-        )
+        if args.all_experiments:
+            get_all_experiment(
+                args.game,
+                version,
+                platform,
+                args.secret,
+                output_path,
+            )
+        else:
+            manifest = get_manifest(
+                args.game,
+                version,
+                platform,
+                args.secret,
+                output_path if args.manifest else None,
+            )
+
+            if args.gamedata or args.gamedatamanifest:
+                gamedata_hash = manifest.get("gamedata")
+                if not gamedata_hash:
+                    sys.exit("Error: manifest does not contain a gamedata hash")
+
+                get_gamedata(
+                    args.game,
+                    version,
+                    platform,
+                    gamedata_hash,
+                    output_path,
+                    save_manifest=args.gamedatamanifest,
+                    extract_data=args.gamedata,
+                )
     except httpx.HTTPStatusError as e:
         print(f"Archive request failed: {e}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
-
-    """
-        manifest_path = None
-        if args.manifest:
-            manifest_path = output_path
-
-        gamedata_secret = get_manifest(
-            args.game, args.secret, version, platform, args.experiment, manifest_path
-        )
-
-        if args.gamedata:
-            objects = get_objects(args.game, gamedata_secret)
-            download_all_files(args.game, gamedata_secret, objects, output_path)
-    """
 
 
 if __name__ == "__main__":
@@ -197,7 +294,12 @@ if __name__ == "__main__":
         "-g", "--game", type=str, help="Game name (required with --secret)"
     )
     parser.add_argument("-s", "--secret", type=str, default=None)
-    parser.add_argument("-ex", "--experiment", type=str, default=None)
+    parser.add_argument(
+        "--all-experiments",
+        action="store_true",
+        dest="all_experiments",
+        help="Fetch manifest for every experiment",
+    )
     parser.add_argument("-p", "--platform", type=str, default="android")
 
     parser.add_argument(
