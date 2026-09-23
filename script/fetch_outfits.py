@@ -1,6 +1,8 @@
 import json
 import os
+import re
 import sys
+from itertools import zip_longest
 from multiprocessing import Pool, cpu_count
 
 import httpx
@@ -27,37 +29,48 @@ def fetch_page_html(page_title):
     return resp.json()["parse"]["text"]["*"]
 
 
-def load_json(file_path):
-    with open(file_path, "r", encoding="utf-8") as f:
-        return json.load(f)
+_BLANK_LINE = re.compile(r"(?:\s*<br[^>]*>\s*){2,}")
 
 
-def save_json(data, file_path):
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    with open(file_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
+def _outfit_names(infobox):
+    th = next(filter(lambda t: "outfit" in t.get_text(strip=True).lower(), infobox.find_all("th")), None)
+    if th is None:
+        return ["Default Outfit"]
+    dtr = th.find_parent("tr").find_next_sibling("tr")
+    tds = dtr.find_all("td", recursive=False) if dtr else []
+    if not tds:
+        return ["Default Outfit"]
+    groups = _BLANK_LINE.split(tds[-1].decode_contents())
+    extra = list(
+        filter(
+            None,
+            map(
+                lambda g: BeautifulSoup(g, "html.parser").get_text("\n", strip=True).split("\n")[0].strip(),
+                groups,
+            ),
+        )
+    )
+    return ["Default Outfit"] + extra
 
 
-def extract_names(toc):
-    a = toc.select_one('a[href="#Appearance"]')
-    if not a:
-        return []
-
-    section = a.find_parent("li")
-    if not section:
-        return []
-
-    ul = section.find_next("ul")
-    if not ul:
-        return []
-
-    names = []
-    for li in ul.find_all("li", recursive=False):
-        span = li.find("span", class_="toctext")
-        if span:
-            names.append(span.get_text(strip=True))
-
-    return names
+def _tab_url(tab):
+    tbl = tab.find("table")
+    rows = ((tbl.find("tbody") or tbl).find_all("tr", recursive=False) or tbl.find_all("tr")) if tbl else []
+    img = rows[1].select_one("img") if len(rows) >= 2 else None
+    if img is None:
+        img = next(
+            filter(
+                lambda im: not (
+                    "logo" in str(im.get("data-src") or im.get("src") or "").lower()
+                    or "logo" in str(im.get("alt") or "").lower()
+                    or "name.png" in str(im.get("data-src") or im.get("src") or "").lower()
+                ),
+                tab.select("img"),
+            ),
+            tab.select_one("img"),
+        )
+    url = img.get("data-src") or img.get("src") if img is not None else None
+    return str(url).split(".png")[0] + ".png" if url else None
 
 
 def extract_outfits(html):
@@ -69,27 +82,31 @@ def extract_outfits(html):
 
     tabber = infobox.select_one("div.tabber.wds-tabber")
     if tabber:
-        toc = soup.find(id="toc")
-        names = ["Default Outfit"] + extract_names(toc) if toc else []
         tabs = tabber.find_all("div", class_="wds-tab__content")
-        outfits = []
-        for i, tab in enumerate(tabs):
-            img = tab.select_one("img")
-            if not img:
-                continue
-            url = img.get("data-src") or img.get("src")
-            if not url:
-                continue
-            url = img_url.split(".png")[0] + ".png"
-            name = names[i] if i < len(names) else ""
-            outfits.append({"name": name, "url": url})
-        return outfits
+        pairs = filter(lambda p: p[1], zip_longest(_outfit_names(infobox), list(map(_tab_url, tabs)), fillvalue=""))
+        return list(map(lambda p: {"name": p[0], "url": p[1]}, pairs))
 
-    img = infobox.select_one("img")
-    if img:
-        url = img.get("data-src") or img.get("src")
-        if url:
-            return [{"name": "Default Outfit", "url": url.split(".png")[0] + ".png"}]
+    rows = (infobox.find("tbody") or infobox).find_all("tr", recursive=False)
+    img = rows[1].select_one("img") if len(rows) > 1 else None
+    if img is None:
+        tbl = infobox.find("table")
+        inner_rows = ((tbl.find("tbody") or tbl).find_all("tr", recursive=False) or tbl.find_all("tr")) if tbl else []
+        img = inner_rows[1].select_one("img") if len(inner_rows) >= 2 else None
+    if img is None:
+        img = next(
+            filter(
+                lambda im: not (
+                    "logo" in str(im.get("data-src") or im.get("src") or "").lower()
+                    or "logo" in str(im.get("alt") or "").lower()
+                    or "name.png" in str(im.get("data-src") or im.get("src") or "").lower()
+                ),
+                infobox.select("img"),
+            ),
+            infobox.select_one("img"),
+        )
+    url = img.get("data-src") or img.get("src") if img is not None else None
+    if url:
+        return [{"name": "Default Outfit", "url": str(url).split(".png")[0] + ".png"}]
 
     return []
 
@@ -110,7 +127,7 @@ def worker(entry):
 
 
 def process_entries(data, limit):
-    entries = [entry for entry in data if entry.get("available")]
+    entries = list(filter(lambda entry: entry.get("available"), data))
     if limit and limit > 0:
         entries = entries[:limit]
 
@@ -124,13 +141,16 @@ def process_entries(data, limit):
 
 
 def main(limit):
-    data = load_json(input_file_path)
+    with open(input_file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
     if limit is None or limit <= 0:
         limit = len(data)
 
     out = process_entries(data, limit)
-    save_json(out, output_file_path)
+    os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
+    with open(output_file_path, "w", encoding="utf-8") as f:
+        json.dump(out, f, indent=2)
 
 
 if __name__ == "__main__":

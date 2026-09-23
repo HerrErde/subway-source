@@ -88,7 +88,7 @@ jobs:
         run: |
           python script/playerprofile.py
           python script/userstats.py
-          python script/collection.py
+          python script/collectionrevamp.py
           python script/challenges.py
           python script/calender.py
           python script/mailbox.py

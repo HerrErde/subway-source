@@ -258,7 +258,7 @@ def get_scripts(
             ["script/fetch_boards.py"],
             ["script/playerprofile.py"],
             ["script/userstats.py"],
-            ["script/collection.py"],
+            ["script/collectionrevamp.py"],
             ["script/challenges.py"],
             ["script/calender.py"],
             ["script/mailbox.py"],
@@ -443,7 +443,7 @@ def main():
         "--skip",
         type=str,
         default="",
-        help="Write a list of scripts that should be skipped, with or without extension. (Like this 'collection.py,playerprofile,calender')",
+        help="Write a list of scripts that should be skipped, with or without extension. (Like this 'collectionrevamp.py,playerprofile,calender')",
     )
 
     args = parser.parse_args()

@@ -153,7 +153,7 @@ def compare_characters(file, output_file, product_names, locale_data):
             added_names = [
                 get_name(product_names, item_id) for item_id in sorted(added_ids)
             ]
-            f.write("- Added Characters " + ", ".join(added_names) + "\n")
+            f.write("- Added Character" + ("s" if len(added_names) != 1 else "") + ": " + ", ".join(added_names) + "\n")
 
         for entry in new_data:
             id_val = entry.get("id")
@@ -189,7 +189,7 @@ def compare_characters(file, output_file, product_names, locale_data):
                     ]
                     character_name = get_name(product_names, entry["id"])
                     f.write(
-                        f"- Added Outfit {', '.join(added_outfit_names)} ({character_name})\n"
+                        f"- Added Outfit{'s' if len(added_outfit_names) != 1 else ''}: {', '.join(added_outfit_names)} ({character_name})\n"
                     )
 
 
@@ -224,7 +224,7 @@ def compare_boards(file, output_file, product_names):
     with open(output_file, "a", encoding="utf-8") as f:
         if added_ids:
             added_names = [resolve_name(item_id) for item_id in sorted(added_ids)]
-            f.write("- Added Boards " + ", ".join(added_names) + "\n")
+            f.write("- Added Board" + ("s" if len(added_names) != 1 else "") + ": " + ", ".join(added_names) + "\n")
 
         for entry in new_data:
             id_val = entry["id"]
@@ -248,7 +248,9 @@ def compare_boards(file, output_file, product_names):
                     ]
                     board_name = resolve_name(entry["id"])
                     f.write(
-                        "- Added Upgrades "
+                        "- Added Upgrade"
+                        + ("s" if len(added_upgrade_names) != 1 else "")
+                        + ": "
                         + board_name
                         + ": "
                         + ", ".join(added_upgrade_names)
@@ -281,17 +283,17 @@ def compare_profile(file, output_file, product_names):
             names = [
                 get_name(product_names, item_id) for item_id in sorted(added_portrait)
             ]
-            f.write("- Added Portraits: " + ", ".join(names) + "\n")
+            f.write("- Added Portrait" + ("s" if len(names) != 1 else "") + ": " + ", ".join(names) + "\n")
         if added_frame:
             names = [
                 get_name(product_names, item_id) for item_id in sorted(added_frame)
             ]
-            f.write("- Added Frames: " + ", ".join(names) + "\n")
+            f.write("- Added Frame" + ("s" if len(names) != 1 else "") + ": " + ", ".join(names) + "\n")
         if added_background:
             names = [
                 get_name(product_names, item_id) for item_id in sorted(added_background)
             ]
-            f.write("- Added Backgrounds: " + ", ".join(names) + "\n")
+            f.write("- Added Background" + ("s" if len(names) != 1 else "") + ": " + ", ".join(names) + "\n")
 
 
 if __name__ == "__main__":

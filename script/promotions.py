@@ -9,14 +9,16 @@ def main():
         data = json.load(input_file)
 
     output_data = []
-    promotions_data = data.get("promotions", [])
+    promotions_data = data.get("promotions", {})
 
-    for promotion in promotions_data:
-        product_sales_ids = [
-            sale.get("productID")
-            for sale in promotion.get("productSales", [])
-            if "productID" in sale
-        ]
+    promotions = promotions_data.values()
+
+    for promotion in promotions:
+        product_sales_ids = []
+        for sale in promotion.get("productSales", []):
+            product_id = sale.get("productID", {})
+            if product_id:
+                product_sales_ids.append(product_id)
 
         if product_sales_ids:
             output_data.append(
