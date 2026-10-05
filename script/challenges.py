@@ -5,40 +5,35 @@ import sys
 input_file_path = "temp/gamedata/challenges.json"
 output_file_path = "temp/upload/challenges_data.json"
 
-collections_file_path = "temp/upload/collections_data.json"
-
 
 def read_json(file_path):
     with open(file_path, "r", encoding="utf-8") as file:
         return json.load(file)
 
 
-def extract_season_number(time_slot):
-    match = re.search(r"_S(\d+)", time_slot or "")
-    if not match:
-        raise ValueError(f"Unable to determine season from timeSlot: {time_slot!r}")
-    return int(match.group(1))
-
-
-def season():
-    with open(collections_file_path, "r", encoding="utf-8") as input_file:
-        data = json.load(input_file)
-        timeslot = data.get("timeSlot", "")
-        return extract_season_number(timeslot)
+def get_latest_season(challenges):
+    seasons = []
+    for challenge in challenges.values():
+        match = re.match(r"s(\d+)_", challenge.get("id", ""), re.IGNORECASE)
+        if match:
+            seasons.append(int(match.group(1)))
+    if not seasons:
+        raise ValueError("Unable to determine season: no season-prefixed challenge IDs found")
+    return max(seasons)
 
 
 def main():
+    data = read_json(input_file_path)
+    challenges = data.get("challenges", {})
+
     if len(sys.argv) >= 2:
         season_number = sys.argv[1]
     else:
-        season_number = season()
-
-    data = read_json(input_file_path)
+        season_number = get_latest_season(challenges)
 
     format_prefix = f"s{season_number}_"
     challenge_data_output = {}
 
-    challenges = data.get("challenges", {})
     eliteChallenges = data.get("eliteChallenges", {})
     challengeDefinitions = data.get("challengeDefinitions", {})
 
