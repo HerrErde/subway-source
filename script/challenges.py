@@ -5,7 +5,10 @@ import sys
 input_file_path = "temp/gamedata/challenges.json"
 output_file_path = "temp/upload/challenges_data.json"
 
-collections_file_path = "temp/upload/collections_data.json"
+# s124_london_mrt and season_S124_subwayshowdown_season -> 124
+SEASON_RE = re.compile(r"s(?:eason_S)?(\d+)_", re.IGNORECASE)
+# no season prefix, but they always belong to the current season
+SEASONLESS_IDS = {"coinChallenge", "dailyChallenge"}
 
 
 def read_json(file_path):
@@ -13,131 +16,79 @@ def read_json(file_path):
         return json.load(file)
 
 
-def extract_season_number(time_slot):
-    match = re.search(r"_S(\d+)", time_slot or "")
-    if not match:
-        raise ValueError(f"Unable to determine season from timeSlot: {time_slot!r}")
-    return int(match.group(1))
+def get_latest_season(challenges):
+    seasons = [
+        int(match.group(1))
+        for match in (
+            SEASON_RE.match(challenge.get("id", ""))
+            for challenge in challenges.values()
+        )
+        if match
+    ]
+    if not seasons:
+        raise ValueError(
+            "Unable to determine season: no season-prefixed challenge IDs found"
+        )
+    return max(seasons)
 
 
-def season():
-    with open(collections_file_path, "r", encoding="utf-8") as input_file:
-        data = json.load(input_file)
-        timeslot = data.get("timeSlot", "")
-        return extract_season_number(timeslot)
+def is_current_season(challenge_id, season_number):
+    return challenge_id in SEASONLESS_IDS or challenge_id.lower().startswith(
+        (f"s{season_number}_", f"season_s{season_number}_")
+    )
 
 
 def main():
-    if len(sys.argv) >= 2:
-        season_number = sys.argv[1]
-    else:
-        season_number = season()
-
     data = read_json(input_file_path)
+    challenges = data.get("challenges", {})
 
-    format_prefix = f"s{season_number}_"
+    season_number = sys.argv[1] if len(sys.argv) > 1 else get_latest_season(challenges)
+    season_number = str(season_number).strip().lower().lstrip("s")
+
+    definitions = {
+        definition.get("id", "").lower(): definition
+        for definition in data.get("challengeDefinitions", {}).values()
+    }
+
     challenge_data_output = {}
 
-    challenges = data.get("challenges", {})
-    eliteChallenges = data.get("eliteChallenges", {})
-    challengeDefinitions = data.get("challengeDefinitions", {})
-
-    print(f"Processing season {season_number} challenges...")
-
-    # Process each challenge
-    for challenge in challenges.values():
-        challengeId = challenge.get("id", "")
-
-        # Check if challengeId starts with the current season
-        if not challengeId.startswith(
-            format_prefix.lower()
-        ) and challengeId not in {"coinChallenge", "dailyChallenge"}:
-
+    for challenge_id, challenge in challenges.items():
+        if not is_current_season(challenge_id, season_number):
             continue
 
-        print(f"Found challenge with ID: {challengeId}")
+        # the timeslot lives on the set entry, not on the challenge itself
+        sets = [
+            entry
+            for entry in challenge.get("seasonChallengeSets", [])
+            if entry.get("challenges")
+        ]
+        set_entry = sets[0] if sets else {}
+        timeSlot = set_entry.get("timeSlot", "")
 
-        gameMode = challenge.get("gameMode", "")
-        timeSlot = challenge.get("timeSlot", "")
-        skipStageCost = challenge.get("skipStageCost", "")
-        sunsetPeriod = challenge.get("sunsetPeriod", "")
-        kind = challenge.get("kind", "")
-        targetCity = challenge.get("targetCity", "")
-        matchmakingId = challenge.get("matchmakingId", "")
-        serverId = challenge.get("serverId", "")
-        seasonChallengeSets = challenge.get("seasonChallengeSets", [])
+        definition = definitions.get(set_entry.get("challenges", [""])[0].lower(), {})
 
-        ui = challenge.get("ui", {})
-        headerTitleKey = ui.get("headerTitleKey", "")
-
-        accessRequirement = challenge.get("accessRequirement", [])
-        visibilityRequirement = challenge.get("visibilityRequirement", [])
-
-        if seasonChallengeSets and seasonChallengeSets[0].get("challenges"):
-            related_challenge_id = seasonChallengeSets[0]["challenges"][0]
-            print(f"Related challenge: {related_challenge_id}")
-
-            # Find the corresponding definition
-            matching_definition = next(
-                (
-                    definition
-                    for definition in challengeDefinitions.values()
-                    if definition.get("id", "").lower()
-                    == related_challenge_id.lower()
-                ),
-                None,
-            )
-
-            if matching_definition:
-                print(f"Found related challenge: {related_challenge_id}")
-
-                participationRequirement = matching_definition.get(
-                    "participationRequirement", {}
-                )
-
-                rewardTiers = matching_definition.get("rewardTiers", [])
-
-                groupRewardUnlockOffset = matching_definition.get(
-                    "groupRewardUnlockOffset", []
-                )
-
-                challenge_data_output[challengeId] = {
-                    "gameMode": gameMode,
-                    "matchmakingId": matchmakingId,
-                    "kind": kind,
-                    "targetCity": targetCity,
-                    "accessRequirement": accessRequirement,
-                    "visibilityRequirement": visibilityRequirement,
-                    "participationRequirement": participationRequirement,
-                    "rewardTiers": rewardTiers,
-                    "serverId": serverId,
-                    "headerTitleKey": headerTitleKey,
-                    "rewardUnlockOffset": groupRewardUnlockOffset,
-                    "currentSetEntryID": seasonChallengeSets[0].get("challenges")[
-                        0
-                    ],
-                    "currentSetEntryTimeSlot": seasonChallengeSets[0].get(
-                        "timeSlot"
-                    ),
-                    "sunsetPeriod": sunsetPeriod,
-                    "timeSlot": timeSlot,
-                    "skipStageCost": skipStageCost,
-                }
-            else:
-                print(
-                    f"No matching definition found for related challenge ID {related_challenge_id}"
-                )
-        else:
-            challenge_data_output[challengeId] = {
-                "gameMode": gameMode,
-                "matchmakingId": matchmakingId,
-                "kind": kind,
-                "accessRequirement": accessRequirement,
-            }
+        challenge_data_output[challenge_id] = {
+            "gameMode": challenge.get("gameMode", ""),
+            "matchmakingId": challenge.get("matchmakingId", ""),
+            "kind": challenge.get("kind", ""),
+            "targetCity": challenge.get("targetCity", ""),
+            "accessRequirement": challenge.get("accessRequirement", {}),
+            "visibilityRequirement": challenge.get("visibilityRequirement", []),
+            "participationRequirement": definition.get("participationRequirement", {}),
+            "rewardTiers": definition.get("rewardTiers", []),
+            "serverId": challenge.get("serverId", ""),
+            "headerTitleKey": challenge.get("ui", {}).get("headerTitleKey", ""),
+            "rewardUnlockOffset": definition.get("groupRewardUnlockOffset", []),
+            "currentSetEntryID": set_entry.get("challenges", [""])[0],
+            "currentSetEntryTimeSlot": timeSlot,
+            "timeSlot": timeSlot,
+            "sunsetPeriod": challenge.get("sunsetPeriod", ""),
+            "skipStageCost": challenge.get("skipStageCost", ""),
+        }
 
     output_data = {
         "challenges": challenge_data_output,
-        "eliteChallenges": eliteChallenges,
+        "eliteChallenges": data.get("eliteChallenges", {}),
     }
 
     with open(output_file_path, "w", encoding="utf-8") as output_file:
